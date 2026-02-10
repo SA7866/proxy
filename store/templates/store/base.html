@@ -1,0 +1,35 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Proxy{% endblock %}</title>
+
+  <!-- This pulls in our CSS file -->
+<link rel="stylesheet" href="{% static 'store/styles.css' %}?v=3">
+</head>
+<body>
+
+  <!-- Simple navbar used on every page -->
+  <div class="navbar">
+    <div class="nav-inner">
+      <div class="brand">Proxy</div>
+
+      <!-- These are just normal links between pages -->
+      <div class="nav-links">
+        <a href="{% url 'home' %}">Home</a>
+        <a href="{% url 'shop' %}">Shop</a>
+        <a href="{% url 'about' %}">About</a>
+        <a href="{% url 'cart' %}">Cart</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main page content goes here -->
+  <div class="container">
+    {% block content %}{% endblock %}
+  </div>
+
+</body>
+</html>

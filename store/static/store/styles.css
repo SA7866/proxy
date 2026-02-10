@@ -1,3 +1,4 @@
+/* ---------- Basic page look ---------- */
 body {
   font-family: Arial, sans-serif;
   margin: 0;
@@ -5,13 +6,40 @@ body {
   color: #111;
 }
 
+/* ---------- Navbar ---------- */
 .navbar {
   background: #111;
   color: #fff;
-  padding: 16px 24px;
+  padding: 16px 0;
   font-weight: 700;
 }
 
+.nav-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  font-weight: 800;
+}
+
+.nav-links a {
+  color: #fff;
+  text-decoration: none;
+  margin-left: 14px;
+  opacity: 0.9;
+}
+
+.nav-links a:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+/* ---------- Layout container ---------- */
 .container {
   max-width: 1100px;
   margin: 24px auto;
@@ -23,6 +51,7 @@ body {
   font-size: 28px;
 }
 
+/* ---------- Product grid/cards ---------- */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -61,6 +90,7 @@ body {
   line-height: 1.4;
 }
 
+/* ---------- Buttons ---------- */
 .btn {
   display: inline-block;
   padding: 10px 12px;
@@ -69,6 +99,12 @@ body {
   color: #fff;
   text-decoration: none;
   font-weight: 700;
+  border: none;
+  cursor: pointer;
+}
+
+.btn:hover {
+  filter: brightness(0.95);
 }
 
 .btn.disabled {

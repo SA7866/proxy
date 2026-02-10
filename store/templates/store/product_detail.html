@@ -1,0 +1,25 @@
+{% extends "store/base.html" %}
+{% block title %}{{ product.name }} • Proxy{% endblock %}
+
+{% block content %}
+  <h1 class="page-title">{{ product.name }}</h1>
+
+  <div class="card">
+    {% if product.image %}
+      <img src="{{ product.image.url }}" alt="{{ product.name }}">
+    {% endif %}
+
+    <p class="price">£{{ product.price }}</p>
+    <p class="desc">{{ product.description }}</p>
+
+    <!-- Add-to-cart form: sends product_id to cart_add -->
+    <form method="post" action="{% url 'cart_add' product.id %}">
+      {% csrf_token %}
+      <button class="btn" type="submit">Add to cart</button>
+    </form>
+
+    <p style="margin-top:10px;">
+      <a href="{% url 'shop' %}">← Back to shop</a>
+    </p>
+  </div>
+{% endblock %}
