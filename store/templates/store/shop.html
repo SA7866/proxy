@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shop</title>
+</head>
+<body>
+    <h1>Shop</h1>
+
+    {% for p in products %}
+        <div style="border:1px solid #ccc; padding:10px; margin:10px;">
+            <h3>{{ p.name }}</h3>
+            <p>£{{ p.price }}</p>
+            <p>{{ p.description }}</p>
+        </div>
+    {% empty %}
+        <p>No products found.</p>
+    {% endfor %}
+</body>
+</html>
