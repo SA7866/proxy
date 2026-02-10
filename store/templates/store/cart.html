@@ -17,7 +17,7 @@
 
     <div class="card">
       <h3>Total: £{{ total|floatformat:2 }}</h3>
-      <a class="btn disabled" href="#">Checkout (coming next)</a>
+      <a class="btn" href="{% url 'checkout' %}">Go to checkout</a>
     </div>
 
   {% else %}

@@ -1,0 +1,62 @@
+{% extends "store/base.html" %}
+{% block title %}Checkout • Proxy{% endblock %}
+
+{% block content %}
+  <h1 class="page-title">Delivery Details</h1>
+
+  {% if error %}
+    <div class="card" style="border:1px solid #ffb4b4;">
+      <b style="color:#b00020;">{{ error }}</b>
+    </div>
+  {% endif %}
+
+  <div class="grid" style="grid-template-columns: 1.2fr 0.8fr;">
+    <!-- Delivery form -->
+    <div class="card">
+      <h3>Where should we deliver?</h3>
+
+      <form method="post">
+        {% csrf_token %}
+
+        <p><input style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;"
+          name="full_name" placeholder="Full name"></p>
+
+        <p><input style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;"
+          name="email" placeholder="Email"></p>
+
+        <p><input style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;"
+          name="address_line1" placeholder="Address line 1"></p>
+
+        <p><input style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;"
+          name="city" placeholder="City"></p>
+
+        <p><input style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;"
+          name="postcode" placeholder="Postcode"></p>
+
+        <p><input style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;"
+          name="country" placeholder="Country"></p>
+
+        <button class="btn" type="submit">Place order</button>
+      </form>
+    </div>
+
+    <!-- Order summary -->
+    <div class="card">
+      <h3>Your Order</h3>
+
+      {% for item in items %}
+        <p style="margin:8px 0;">
+          <b>{{ item.product.name }}</b><br>
+          £{{ item.product.price }} × {{ item.qty }}
+          <span style="float:right;">£{{ item.subtotal|floatformat:2 }}</span>
+        </p>
+      {% endfor %}
+
+      <hr style="border:none; border-top:1px solid #eee; margin:12px 0;">
+
+      <p class="price">Total: £{{ total|floatformat:2 }}</p>
+
+      <p class="desc">Payment step comes next (we’ll do a safe simulated checkout).</p>
+    </div>
+  </div>
+{% endblock %}
