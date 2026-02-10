@@ -1,19 +1,36 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Shop</title>
+  <title>Shop</title>
+  <link rel="stylesheet" href="{% static 'store/styles.css' %}">
 </head>
 <body>
-    <h1>Shop</h1>
+  <div class="navbar">Proxy • Shop</div>
 
-    {% for p in products %}
-        <div style="border:1px solid #ccc; padding:10px; margin:10px;">
+  <div class="container">
+    <h1 class="page-title">Shop</h1>
+
+    {% if products %}
+      <div class="grid">
+        {% for p in products %}
+          <div class="card">
+            {% if p.image %}
+              <img src="{{ p.image.url }}" alt="{{ p.name }}">
+            {% endif %}
+
             <h3>{{ p.name }}</h3>
-            <p>£{{ p.price }}</p>
-            <p>{{ p.description }}</p>
-        </div>
-    {% empty %}
-        <p>No products found.</p>
-    {% endfor %}
+            <p class="price">£{{ p.price }}</p>
+            <p class="desc">{{ p.description }}</p>
+
+            <a class="btn disabled" href="#">Customise (coming soon)</a>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>No products yet. Add some in <b>/admin</b>.</p>
+    {% endif %}
+  </div>
 </body>
 </html>
+
