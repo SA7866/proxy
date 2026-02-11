@@ -1,0 +1,14 @@
+{% extends "store/base.html" %}
+{% block title %}Customise • Proxy{% endblock %}
+
+{% block content %}
+  <h1 class="page-title">Customise: {{ product.name }}</h1>
+
+  <div class="card">
+    <p><b>Template missing.</b></p>
+    <p>
+      This product needs a <code>template_image</code> (transparent PNG) before the customiser can load.
+    </p>
+    <p>Go to <b>/admin</b> → Products → upload a template image.</p>
+  </div>
+{% endblock %}

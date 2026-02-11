@@ -1,0 +1,134 @@
+{% extends "store/base.html" %}
+{% load static %}
+
+{% block title %}Customise • Proxy{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Customise: {{ product.name }}</h1>
+
+<!-- Page-only layout fix (stops overlap even if other CSS changes) -->
+<style>
+  .customiser-wrap{
+    display:flex;
+    gap:24px;
+    align-items:flex-start;
+  }
+  .customiser-left{
+    flex: 1 1 auto;
+    min-width: 0; /* IMPORTANT: stops flex overflow */
+  }
+  .customiser-right{
+    flex: 0 0 460px; /* fixed tools width */
+    width: 460px;
+  }
+
+  @media (max-width: 1000px){
+    .customiser-wrap{
+      flex-direction: column;
+    }
+    .customiser-right{
+      width: 100%;
+      flex: 1 1 auto;
+    }
+  }
+</style>
+
+<div class="customiser-wrap">
+
+  <!-- LEFT: CANVAS -->
+  <div class="customiser-left">
+    <div class="card canvas-wrap">
+      <div style="position:relative;">
+        <canvas
+          id="designerCanvas"
+          width="900"
+          height="650"
+          style="width:100%; height:auto; background:#f2f2f2; border-radius:12px; display:block;">
+        </canvas>
+      </div>
+
+      <p class="desc" style="margin-top:12px;">
+        The blue dashed box is the print area. Your design must stay inside it.
+      </p>
+    </div>
+  </div>
+
+  <!-- RIGHT: TOOLS -->
+  <div class="customiser-right">
+    <div class="card tools-card">
+      <h3 style="margin-top:0;">Tools</h3>
+
+      <!-- SIZE -->
+      <label style="font-weight:700; display:block; margin-top:10px;">Size</label>
+      <select id="sizeSelect" class="input-field">
+        <option value="S">S</option>
+        <option value="M">M</option>
+        <option value="L">L</option>
+        <option value="XL">XL</option>
+      </select>
+
+      <hr style="border:none; border-top:1px solid #eee; margin:16px 0;">
+
+      <!-- TEXT -->
+      <label style="font-weight:700; display:block;">Add text</label>
+      <input id="textInput" class="input-field" placeholder="Type something...">
+
+      <div style="display:flex; gap:10px; margin-top:10px; align-items:flex-end;">
+        <div style="flex:0 0 110px;">
+          <small style="display:block; margin-bottom:6px;">Size</small>
+          <input id="textSize" type="number" class="input-field"
+                 value="48" min="10" max="120" style="padding:10px 12px;">
+        </div>
+
+        <div style="flex:0 0 90px;">
+          <small style="display:block; margin-bottom:6px;">Colour</small>
+          <input id="textColor" type="color" value="#111111"
+                 style="height:42px; width:70px; border:none; background:transparent;">
+        </div>
+
+        <div style="flex:1 1 auto;">
+          <button id="addTextBtn" class="btn" type="button" style="width:100%;">
+            Add text
+          </button>
+        </div>
+      </div>
+
+      <hr style="border:none; border-top:1px solid #eee; margin:16px 0;">
+
+      <!-- IMAGE -->
+      <label style="font-weight:700; display:block;">Upload image</label>
+      <input id="imageInput" type="file" accept="image/*" class="input-field">
+
+      <div style="display:flex; gap:10px; margin-top:14px;">
+        <button id="deleteBtn" class="btn" type="button" style="background:#111; flex:1;">
+          Delete selected
+        </button>
+        <button id="bringFrontBtn" class="btn" type="button" style="flex:1;">
+          Bring to front
+        </button>
+      </div>
+
+      <hr style="border:none; border-top:1px solid #eee; margin:16px 0;">
+
+      <!-- SAVE -->
+      <form id="saveForm" method="post" action="{% url 'save_design' product.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="design_data" id="designData">
+        <input type="hidden" name="preview_data_url" id="previewDataUrl">
+        <input type="hidden" name="size" id="sizeField">
+
+        <button class="btn" type="submit" style="width:100%; margin-top:6px;">
+          Save design
+        </button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  window.PRODUCT_TEMPLATE_URL = "{{ product.template_image.url }}";
+  window.PRINT_AREA = {{ print_area|safe }};
+</script>
+<script src="{% static 'store/customise.js' %}"></script>
+{% endblock %}

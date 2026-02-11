@@ -4,9 +4,10 @@
 {% block content %}
   <h1 class="page-title">Delivery Details</h1>
 
-  {% if error %}
+  <!-- If the Django form has errors, show a simple message -->
+  {% if form.errors %}
     <div class="card" style="border:1px solid #ffb4b4;">
-      <b style="color:#b00020;">{{ error }}</b>
+      <b style="color:#b00020;">Please fix the highlighted fields and try again.</b>
     </div>
   {% endif %}
 
@@ -18,23 +19,36 @@
       <form method="post">
         {% csrf_token %}
 
-        <p><input style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;"
-          name="full_name" placeholder="Full name"></p>
+        <!-- Using Django form fields  -->
+        <p>
+          {{ form.full_name }}
+          {% if form.full_name.errors %}<span style="color:#b00020;">{{ form.full_name.errors }}</span>{% endif %}
+        </p>
 
-        <p><input style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;"
-          name="email" placeholder="Email"></p>
+        <p>
+          {{ form.email }}
+          {% if form.email.errors %}<span style="color:#b00020;">{{ form.email.errors }}</span>{% endif %}
+        </p>
 
-        <p><input style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;"
-          name="address_line1" placeholder="Address line 1"></p>
+        <p>
+          {{ form.address_line1 }}
+          {% if form.address_line1.errors %}<span style="color:#b00020;">{{ form.address_line1.errors }}</span>{% endif %}
+        </p>
 
-        <p><input style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;"
-          name="city" placeholder="City"></p>
+        <p>
+          {{ form.city }}
+          {% if form.city.errors %}<span style="color:#b00020;">{{ form.city.errors }}</span>{% endif %}
+        </p>
 
-        <p><input style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;"
-          name="postcode" placeholder="Postcode"></p>
+        <p>
+          {{ form.postcode }}
+          {% if form.postcode.errors %}<span style="color:#b00020;">{{ form.postcode.errors }}</span>{% endif %}
+        </p>
 
-        <p><input style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;"
-          name="country" placeholder="Country"></p>
+        <p>
+          {{ form.country }}
+          {% if form.country.errors %}<span style="color:#b00020;">{{ form.country.errors }}</span>{% endif %}
+        </p>
 
         <button class="btn" type="submit">Place order</button>
       </form>
@@ -56,7 +70,10 @@
 
       <p class="price">Total: £{{ total|floatformat:2 }}</p>
 
-      <p class="desc">Payment step comes next (we’ll do a safe simulated checkout).</p>
+      <p class="desc">
+        Payment step comes next (safe simulated checkout for the prototype).
+      </p>
     </div>
   </div>
 {% endblock %}
+

@@ -7,6 +7,7 @@ body {
 }
 
 /* ---------- Navbar ---------- */
+/* ---------- Navbar ---------- */
 .navbar {
   background: #111;
   color: #fff;
@@ -23,8 +24,15 @@ body {
   justify-content: space-between;
 }
 
-.brand {
+.brand a,
+.brand a:visited {
+  color: #fff;
+  text-decoration: none;
   font-weight: 800;
+}
+
+.brand a:hover {
+  text-decoration: underline;
 }
 
 .nav-links a {
@@ -38,6 +46,7 @@ body {
   opacity: 1;
   text-decoration: underline;
 }
+
 
 /* ---------- Layout container ---------- */
 .container {
@@ -101,6 +110,7 @@ body {
   font-weight: 700;
   border: none;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .btn:hover {
@@ -110,4 +120,84 @@ body {
 .btn.disabled {
   background: #9aa4b2;
   pointer-events: none;
+}
+
+/* ---------- Inputs (used across checkout + customiser) ---------- */
+.input-field {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  box-sizing: border-box;
+  background: #fff;
+}
+
+.input-field:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  outline: none;
+}
+
+/* ---------- Checkout form groups + labels ---------- */
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #111;
+  letter-spacing: 0.2px;
+}
+
+/* Make Django error text look nicer */
+.errorlist {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: #b00020;
+  font-size: 13px;
+}
+
+/* ---------- Customiser layout ---------- */
+/* FIX: stable 2-column grid that never overlaps */
+.customiser-grid {
+  display: grid;
+  grid-template-columns: 1fr 460px; /* left flexible, right fixed */
+  gap: 24px;
+  align-items: start;
+}
+
+/* Mobile stacks */
+@media (max-width: 1000px) {
+  .customiser-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Make the canvas card not shrink weirdly */
+.canvas-wrap {
+  width: 100%;
+  overflow: hidden;
+}
+
+.canvas-wrap canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Tools spacing */
+.tools-card hr {
+  border: none;
+  border-top: 1px solid #eee;
+  margin: 16px 0;
+}
+
+/* Keep tool buttons from stretching in weird ways */
+.tools-card .btn {
+  width: auto;
 }

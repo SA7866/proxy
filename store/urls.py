@@ -14,5 +14,11 @@ urlpatterns = [
 
     path("checkout/", views.checkout_view, name="checkout"),
     path("thank-you/<int:order_id>/", views.thank_you, name="thank_you"),
+    path("payment/<int:order_id>/", views.payment_view, name="payment"),
+
+    path("customise/<int:product_id>/", views.customise_view, name="customise"),
+    path("save-design/<int:product_id>/", views.save_design_view, name="save_design"),
+    path("my-designs/", views.my_designs_view, name="my_designs"),
+
 
 ]

@@ -1,55 +1,50 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from .models import Product
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.core.files.base import ContentFile
 
-# Home page - simple landing page for now
+import base64
+
+from .models import Product, Order, Design
+from .forms import CheckoutForm
+from .services.order_service import build_cart_summary, create_order_from_cart
+from .services.payment_service import mark_order_paid
+
+
+# ----------------------------
+# BASIC PAGES
+# ----------------------------
+
 def home(request):
-    # In a real site we might show featured items here
     featured = Product.objects.all().order_by("-created_at")[:4]
     return render(request, "store/home.html", {"featured": featured})
 
-# About page - explains the project
+
 def about(request):
     return render(request, "store/about.html")
 
-# Shop page - lists all products
+
 def shop(request):
     products = Product.objects.all().order_by("-created_at")
     return render(request, "store/shop.html", {"products": products})
 
-# Product detail page - shows one product
+
 def product_detail(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     return render(request, "store/product_detail.html", {"product": product})
 
-# ---- CART (session-based) ----
-# We store the cart in request.session so it works without creating cart tables.
-# Format example:
-# cart = {"3": {"qty": 2}, "7": {"qty": 1}}
+
+# ----------------------------
+# CART (SESSION-BASED)
+# ----------------------------
 
 def cart_view(request):
     cart = request.session.get("cart", {})
-
-    # Build a list of items for the template (product + qty + subtotal)
-    items = []
-    total = 0
-
-    for product_id_str, data in cart.items():
-        product = get_object_or_404(Product, id=int(product_id_str))
-        qty = int(data.get("qty", 1))
-        subtotal = float(product.price) * qty
-        total += subtotal
-
-        items.append({
-            "product": product,
-            "qty": qty,
-            "subtotal": subtotal,
-        })
-
+    items, total = build_cart_summary(cart)
     return render(request, "store/cart.html", {"items": items, "total": total})
 
 
 def cart_add(request, product_id):
-    # Only allow POST so people don’t add items by just opening a URL
+    # Only allow add via POST (prevents “add by typing URL”)
     if request.method != "POST":
         return redirect("product_detail", product_id=product_id)
 
@@ -62,8 +57,7 @@ def cart_add(request, product_id):
         cart[key] = {"qty": 1}
 
     request.session["cart"] = cart
-    request.session.modified = True  # tells Django “session changed”
-
+    request.session.modified = True
     return redirect("cart")
 
 
@@ -79,91 +73,135 @@ def cart_remove(request, product_id):
     return redirect("cart")
 
 
-from decimal import Decimal
-from .models import Order, OrderItem
+# ----------------------------
+# CHECKOUT + PAYMENT
+# ----------------------------
 
 def checkout_view(request):
     """
-    Checkout page:
-    - Shows what is in the cart
-    - Collects delivery details
-    - Creates an Order + OrderItems when you submit
+    - View handles request/response only
+    - Form handles validation
+    - Service handles order creation logic
     """
     cart = request.session.get("cart", {})
 
-    # If cart is empty, no point checking out
     if not cart:
         return redirect("cart")
 
-    # Build summary for template
-    items = []
-    total = Decimal("0.00")
+    items, total = build_cart_summary(cart)
 
-    for product_id_str, data in cart.items():
-        product = get_object_or_404(Product, id=int(product_id_str))
-        qty = int(data.get("qty", 1))
-        subtotal = Decimal(str(product.price)) * qty
-        total += subtotal
-
-        items.append({
-            "product": product,
-            "qty": qty,
-            "subtotal": subtotal,
-        })
-
-    # If user submitted the form
     if request.method == "POST":
-        full_name = request.POST.get("full_name", "").strip()
-        email = request.POST.get("email", "").strip()
-        address_line1 = request.POST.get("address_line1", "").strip()
-        city = request.POST.get("city", "").strip()
-        postcode = request.POST.get("postcode", "").strip()
-        country = request.POST.get("country", "").strip()
+        form = CheckoutForm(request.POST)
 
-        # Simple validation (basic but fine for prototype)
-        if not all([full_name, email, address_line1, city, postcode, country]):
-            return render(request, "store/checkout.html", {
-                "items": items,
-                "total": total,
-                "error": "Please fill in all delivery fields."
-            })
+        if form.is_valid():
+            delivery_data = form.cleaned_data
 
-        # Create order
-        order = Order.objects.create(
-            user=request.user if request.user.is_authenticated else None,
-            full_name=full_name,
-            email=email,
-            address_line1=address_line1,
-            city=city,
-            postcode=postcode,
-            country=country,
-            total_amount=total,
-            status="PENDING"
-        )
-
-        # Create order items
-        for item in items:
-            OrderItem.objects.create(
-                order=order,
-                product=item["product"],
-                qty=item["qty"],
-                unit_price=item["product"].price
+            order = create_order_from_cart(
+                cart=cart,
+                user=request.user if request.user.is_authenticated else None,
+                delivery_data=delivery_data
             )
 
-        # Clear cart after placing order (like a real checkout)
-        request.session["cart"] = {}
-        request.session.modified = True
+            # Clear cart after order is created
+            request.session["cart"] = {}
+            request.session.modified = True
 
+            # Send them to payment step
+            return redirect("payment", order_id=order.id)
+
+    else:
+        form = CheckoutForm()
+
+    return render(request, "store/checkout.html", {
+        "form": form,
+        "items": items,
+        "total": total
+    })
+
+
+def payment_view(request, order_id):
+    """
+    Payment step (simulated).
+    View is thin: it just updates the order using a service.
+    """
+    order = get_object_or_404(Order, id=order_id)
+
+    if request.method == "POST":
+        mark_order_paid(order)
         return redirect("thank_you", order_id=order.id)
 
-    # Normal GET request shows the page
-    return render(request, "store/checkout.html", {"items": items, "total": total})
+    return render(request, "store/payment.html", {"order": order})
 
 
 def thank_you(request, order_id):
-    """
-    Simple confirmation page.
-    Shows order number so it feels real.
-    """
     order = get_object_or_404(Order, id=order_id)
     return render(request, "store/thank_you.html", {"order": order})
+
+
+# ----------------------------
+# CUSTOMISER + DESIGNS
+# ----------------------------
+
+@login_required
+def customise_view(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+
+    # If template_image is missing, show a friendly page instead of crashing
+    if not product.template_image:
+        return render(request, "store/customise_missing_template.html", {"product": product})
+
+    context = {
+        "product": product,
+        "print_area": {
+            "x": product.print_x,
+            "y": product.print_y,
+            "w": product.print_w,
+            "h": product.print_h,
+        }
+    }
+    return render(request, "store/customise.html", context)
+
+
+@login_required
+def save_design_view(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+
+    if request.method != "POST":
+        return redirect("customise", product_id=product.id)
+
+    design_json = request.POST.get("design_data", "")
+    preview_data_url = request.POST.get("preview_data_url", "")
+    size = request.POST.get("size", "")
+
+    # If the JS didn't send design data, just bounce back
+    if not design_json or not preview_data_url:
+        return redirect("customise", product_id=product.id)
+
+    # Save design row in SQL
+    design = Design.objects.create(
+        user=request.user,
+        product=product,
+        design_data=design_json,
+        size=size
+    )
+
+    # Save preview image (canvas screenshot) as a real file
+    try:
+        header, data = preview_data_url.split(";base64,")
+        file_data = base64.b64decode(data)
+        design.preview.save(
+            f"design_{design.id}.png",
+            ContentFile(file_data),
+            save=True
+        )
+    except Exception:
+        # If image saving fails, we still keep the design JSON
+        pass
+
+    return redirect("my_designs")
+
+
+@login_required
+def my_designs_view(request):
+    designs = Design.objects.filter(user=request.user).order_by("-created_at")
+    return render(request, "store/my_designs.html", {"designs": designs})

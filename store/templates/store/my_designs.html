@@ -1,0 +1,25 @@
+{% extends "store/base.html" %}
+{% block title %}My Designs • Proxy{% endblock %}
+
+{% block content %}
+  <h1 class="page-title">My Designs</h1>
+
+  {% if designs %}
+    <div class="grid">
+      {% for d in designs %}
+        <div class="card">
+          {% if d.preview %}
+            <img src="{{ d.preview.url }}" alt="Design preview">
+          {% endif %}
+          <h3>{{ d.product.name }}</h3>
+          <p class="desc">Size: {{ d.size|default:"Not set" }}</p>
+          <p class="desc">Created: {{ d.created_at }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card">
+      <p>You haven’t saved any designs yet.</p>
+    </div>
+  {% endif %}
+{% endblock %}
