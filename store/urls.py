@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 
 urlpatterns = [
@@ -20,5 +20,10 @@ urlpatterns = [
     path("save-design/<int:product_id>/", views.save_design_view, name="save_design"),
     path("my-designs/", views.my_designs_view, name="my_designs"),
 
+    path("register/", views.register_view, name="register"),
+    path("login/", views.login_view, name="login"),
+    path("logout/", views.logout_view, name="logout"),
+    
+    path("admin-panel/", include("store.admin_urls")),  # custom admin
 
 ]

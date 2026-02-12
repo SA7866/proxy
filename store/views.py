@@ -8,6 +8,10 @@ from .models import Product, Order, Design
 from .forms import CheckoutForm
 from .services.order_service import build_cart_summary, create_order_from_cart
 from .services.payment_service import mark_order_paid
+from django.contrib.auth import login, logout
+from django.contrib.auth.forms import AuthenticationForm
+from .forms import RegisterForm
+
 
 
 # ----------------------------
@@ -195,7 +199,7 @@ def save_design_view(request, product_id):
             save=True
         )
     except Exception:
-        # If image saving fails, we still keep the design JSON
+        # If image saving fails, still keep the design JSON
         pass
 
     return redirect("my_designs")
@@ -205,3 +209,51 @@ def save_design_view(request, product_id):
 def my_designs_view(request):
     designs = Design.objects.filter(user=request.user).order_by("-created_at")
     return render(request, "store/my_designs.html", {"designs": designs})
+
+
+def register_view(request):
+    """
+    Creates a new user account and logs them in straight away.
+    """
+    if request.user.is_authenticated:
+        return redirect("home")
+
+    if request.method == "POST":
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)  # auto login after signup
+            return redirect("home")
+    else:
+        form = RegisterForm()
+
+    return render(request, "store/register.html", {"form": form})
+
+
+def login_view(request):
+    """
+    Logs a user in using Django's AuthenticationForm.
+    """
+    if request.user.is_authenticated:
+        return redirect("home")
+
+    if request.method == "POST":
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            login(request, user)
+            return redirect("home")
+    else:
+        form = AuthenticationForm()
+
+    
+    form.fields["username"].widget.attrs.update({"class": "input-field", "placeholder": "Username"})
+    form.fields["password"].widget.attrs.update({"class": "input-field", "placeholder": "Password"})
+
+    return render(request, "store/login.html", {"form": form})
+
+
+def logout_view(request):
+    logout(request)
+    return redirect("home")
+

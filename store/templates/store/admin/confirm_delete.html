@@ -1,0 +1,15 @@
+{% extends "store/base.html" %}
+{% block title %}Admin • Confirm{% endblock %}
+
+{% block content %}
+<h1 class="page-title">{{ title }}</h1>
+
+<div class="card">
+  <p>{{ message }}</p>
+  <form method="post">
+    {% csrf_token %}
+    <button class="btn" type="submit" style="background:#111;">Yes, delete</button>
+    <a class="btn" href="{% url cancel_url %}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

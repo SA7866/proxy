@@ -1,0 +1,23 @@
+{% extends "store/base.html" %}
+{% block title %}Admin • Products{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Products</h1>
+
+<a class="btn" href="{% url 'admin_products_create' %}">+ Add product</a>
+
+<div class="card" style="margin-top:14px;">
+  {% for p in products %}
+    <p style="display:flex; justify-content:space-between; gap:12px; align-items:center;">
+      <span><b>{{ p.name }}</b> — £{{ p.price }}</span>
+      <span>
+        <a class="btn" href="{% url 'admin_products_edit' p.id %}">Edit</a>
+        <a class="btn" style="background:#111;" href="{% url 'admin_products_delete' p.id %}">Delete</a>
+      </span>
+    </p>
+    <hr style="border:none;border-top:1px solid #eee;">
+  {% empty %}
+    <p>No products yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,4 +1,6 @@
 from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
 
 INPUT_CLASS = "input-field"
 
@@ -27,3 +29,23 @@ class CheckoutForm(forms.Form):
         max_length=60,
         widget=forms.TextInput(attrs={"class": INPUT_CLASS, "placeholder": "Country"})
     )
+
+class RegisterForm(UserCreationForm):
+    """
+    Simple signup form. Uses Django's built-in password rules + hashing.
+    """
+    email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={"class": INPUT_CLASS, "placeholder": "Email"}))
+
+    class Meta:
+        model = User
+        fields = ("username", "email", "password1", "password2")
+        widgets = {
+            "username": forms.TextInput(attrs={"class": INPUT_CLASS, "placeholder": "Username"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Make password inputs match your styling
+        self.fields["password1"].widget.attrs.update({"class": INPUT_CLASS, "placeholder": "Password"})
+        self.fields["password2"].widget.attrs.update({"class": INPUT_CLASS, "placeholder": "Confirm password"})

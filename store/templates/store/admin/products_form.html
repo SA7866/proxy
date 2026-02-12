@@ -1,0 +1,66 @@
+{% extends "store/base.html" %}
+{% block title %}Admin • Product{% endblock %}
+
+{% block content %}
+<h1 class="page-title">
+  {% if mode == "create" %}Create product{% else %}Edit product{% endif %}
+</h1>
+
+<div class="card">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="form-group">
+      <label>Name</label>
+      <input class="input-field" name="name" value="{{ product.name|default:'' }}" required>
+    </div>
+
+    <div class="form-group">
+      <label>Price (£)</label>
+      <input class="input-field" name="price" type="number" step="0.01" value="{{ product.price|default:'' }}" required>
+    </div>
+
+    <div class="form-group">
+      <label>Description</label>
+      <textarea class="input-field" name="description" rows="4">{{ product.description|default:'' }}</textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Shop image (optional)</label>
+      <input class="input-field" type="file" name="image" accept="image/*">
+    </div>
+
+    <div class="form-group">
+      <label>Template image (transparent PNG for customiser)</label>
+      <input class="input-field" type="file" name="template_image" accept="image/*">
+      <p class="desc">This is the PNG that sits inside the canvas.</p>
+    </div>
+
+    <hr style="border:none;border-top:1px solid #eee;margin:16px 0;">
+
+    <h3>Print area (pixels)</h3>
+    <p class="desc">This controls the blue dashed box.</p>
+
+    <div class="grid" style="grid-template-columns:repeat(2,1fr);">
+      <div class="form-group">
+        <label>print_x</label>
+        <input class="input-field" name="print_x" type="number" value="{{ product.print_x|default:270 }}">
+      </div>
+      <div class="form-group">
+        <label>print_y</label>
+        <input class="input-field" name="print_y" type="number" value="{{ product.print_y|default:210 }}">
+      </div>
+      <div class="form-group">
+        <label>print_w</label>
+        <input class="input-field" name="print_w" type="number" value="{{ product.print_w|default:300 }}">
+      </div>
+      <div class="form-group">
+        <label>print_h</label>
+        <input class="input-field" name="print_h" type="number" value="{{ product.print_h|default:360 }}">
+      </div>
+    </div>
+
+    <button class="btn" type="submit" style="width:100%;">Save</button>
+  </form>
+</div>
+{% endblock %}

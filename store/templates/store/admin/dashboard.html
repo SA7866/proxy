@@ -1,0 +1,25 @@
+{% extends "store/base.html" %}
+{% block title %}Admin • Dashboard{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Admin Dashboard</h1>
+
+<div class="grid">
+  <div class="card"><h3>Products</h3><p class="price">{{ product_count }}</p><a class="btn" href="{% url 'admin_products_list' %}">Manage</a></div>
+  <div class="card"><h3>Orders</h3><p class="price">{{ order_count }}</p><a class="btn" href="{% url 'admin_orders_list' %}">View</a></div>
+  <div class="card"><h3>Designs</h3><p class="price">{{ design_count }}</p><a class="btn" href="{% url 'admin_designs_list' %}">View</a></div>
+  <div class="card"><h3>Users</h3><p class="price">{{ user_count }}</p><a class="btn" href="{% url 'admin_users_list' %}">Manage</a></div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <h3>Recent Orders</h3>
+  {% for o in recent_orders %}
+    <p>
+      <b>#{{ o.id }}</b> — {{ o.full_name }} — £{{ o.total_amount }} — <b>{{ o.status }}</b>
+      <a style="float:right;" href="{% url 'admin_orders_detail' o.id %}">Open</a>
+    </p>
+  {% empty %}
+    <p>No orders yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}
