@@ -1,49 +1,83 @@
 {% load static %}
+<!-- base.html — The master layout template.
+     Every other page template "extends" this one.
+     Django's template inheritance works like this:
+       - base.html defines the page skeleton (navbar, footer, CSS link)
+       - Child templates use {% extends "store/base.html" %} at the top
+       - They fill in {% block content %} with their own HTML
+       - Everything outside those blocks stays exactly as written here -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  {# Each page can override this block to set its own <title>.
+     Default fallback is just "Proxy" if a page doesn't set it. #}
   <title>{% block title %}Proxy{% endblock %}</title>
 
-  <!-- Main CSS (cache-buster so browser always reloads styles) -->
-  <link rel="stylesheet" href="{% static 'store/styles.css' %}?v=12">
+  {# {% static %} builds the correct URL to a file in static/.
+     The ?v=21 forces browsers to reload the CSS when the version number changes,
+     instead of serving an old cached version. #}
+  <link rel="stylesheet" href="{% static 'store/styles.css' %}?v=21">
 </head>
 <body>
 
-  <!-- ===================== -->
-  <!-- NAVBAR -->
-  <!-- ===================== -->
-  <div class="navbar">
+  <!-- NAVBAR
+       cart_count is injected on every page by store/context_processors.py.
+       It counts the total number of items in the session cart.
+       {% if user.is_authenticated %} is provided by Django's auth context processor
+       and is true when someone is logged in. -->
+  <nav class="navbar">
     <div class="nav-inner">
+
+      <!-- Brand logo -->
       <div class="brand">
-        <a href="{% url 'home' %}">Proxy</a>
+        <a href="{% url 'home' %}">PRO<span style="color:#dc2626;">X</span>Y</a>
       </div>
 
       <div class="nav-links">
         <a href="{% url 'home' %}">Home</a>
         <a href="{% url 'shop' %}">Shop</a>
         <a href="{% url 'about' %}">About</a>
-        <a href="{% url 'cart' %}">Cart ({{ cart_count }})</a>
 
         {% if user.is_authenticated %}
+          {# These links only appear when the user is logged in #}
           <a href="{% url 'my_designs' %}">My Designs</a>
+          <a href="{% url 'my_orders' %}">My Orders</a>
+          {% if user.is_staff %}
+            {# Staff users get an extra Admin link #}
+            <a href="{% url 'admin_dashboard' %}" style="color:#dc2626; font-weight:700;">&#9881; Admin</a>
+          {% endif %}
           <a href="{% url 'logout' %}">Logout</a>
         {% else %}
+          {# Guests see Login / Register instead #}
           <a href="{% url 'login' %}">Login</a>
           <a href="{% url 'register' %}">Register</a>
         {% endif %}
+
+        {# Cart button — shows item count badge if cart is not empty #}
+        <a href="{% url 'cart' %}" class="cart-link">
+          Cart {% if cart_count > 0 %}({{ cart_count }}){% endif %}
+        </a>
       </div>
     </div>
-  </div>
+  </nav>
 
-  <!-- ===================== -->
-  <!-- PAGE CONTENT -->
-  <!-- ===================== -->
-  <main class="container">
-    {% block content %}{% endblock %}
-  </main>
+  <!-- PAGE CONTENT
+       Most pages use {% block content %} which is wrapped in .container here.
+       The homepage overrides {% block full_content %} instead so it can have
+       a full-width hero section without the container padding. -->
+  {% block full_content %}
+    <main class="container">
+      {% block content %}{% endblock %}
+    </main>
+  {% endblock %}
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <p>&copy; 2025 Proxy &mdash; Custom Print Store &mdash; Final Year Project</p>
+  </footer>
 
 </body>
 </html>

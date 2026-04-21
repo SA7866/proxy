@@ -1,0 +1,351 @@
+{% load static %}
+<!-- admin_base.html — Master layout for the custom admin panel.
+     All admin pages extend this template, just like the public pages extend base.html.
+     It provides: fixed sidebar, top bar, and a content area.
+     The sidebar links use {% block nav_X %}{% endblock %} blocks —
+     each admin page sets the relevant one to "active" to highlight the current section. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Admin{% endblock %} • Proxy Admin</title>
+  <!-- Reuses the same main stylesheet as the public site -->
+  <link rel="stylesheet" href="{% static 'store/styles.css' %}?v=21">
+  <style>
+    /* Admin panel has a darker background than the public site */
+    body { background:#111; display:block; }
+
+    /* Shell wraps sidebar + main content side by side */
+    .admin-shell {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ---- SIDEBAR (fixed left column) ---- */
+    .admin-sidebar {
+      width: 230px;
+      background: #0a0a0a;
+      border-right: 1px solid #1f1f1f;
+      display: flex;
+      flex-direction: column;
+      position: fixed;  /* stays in place while main content scrolls */
+      top: 0; left: 0; bottom: 0;
+      z-index: 50;
+    }
+
+    /* Brand logo at the top of the sidebar */
+    .sidebar-brand {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid #1f1f1f;
+    }
+
+    .sidebar-brand a {
+      font-size: 20px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: -0.5px;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    .sidebar-brand span { color: #dc2626; }
+
+    /* Small section label e.g. "MAIN" above the nav links */
+    .sidebar-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #52525b;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 20px 20px 8px;
+    }
+
+    /* Navigation link list */
+    .sidebar-nav { flex: 1; padding: 8px 12px; }
+
+    .sidebar-nav a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #a1a1aa;
+      text-decoration: none;
+      transition: background 0.15s, color 0.15s;
+      margin-bottom: 2px;
+    }
+
+    .sidebar-nav a:hover { background: #1a1a1a; color: #fff; }
+
+    /* "active" class is set by the current page using {% block nav_X %}active{% endblock %} */
+    .sidebar-nav a.active {
+      background: rgba(220,38,38,0.15);
+      color: #dc2626;
+      font-weight: 700;
+    }
+
+    .sidebar-nav a .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+    /* Logged-in username and "Back to store" link at the bottom of the sidebar */
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid #1f1f1f;
+      font-size: 12px;
+      color: #52525b;
+    }
+
+    .sidebar-footer a { color: #dc2626; text-decoration: none; font-weight: 600; }
+    .sidebar-footer a:hover { text-decoration: underline; }
+
+    /* ---- MAIN CONTENT AREA ----
+       margin-left: 230px leaves room for the fixed sidebar. */
+    .admin-main {
+      margin-left: 230px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background: #f5f5f5;
+    }
+
+    /* Sticky top bar showing the current page name and logged-in user */
+    .admin-topbar {
+      background: #fff;
+      border-bottom: 1px solid #e4e4e7;
+      padding: 0 32px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+
+    .admin-topbar .page-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0a0a0a;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .admin-topbar .user-info {
+      font-size: 13px;
+      color: #71717a;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Red "Staff" pill next to the username */
+    .admin-topbar .user-badge {
+      background: #dc2626;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+    }
+
+    /* Padded area where each page's content appears */
+    .admin-content { padding: 28px 32px; flex: 1; }
+
+    /* ---- DASHBOARD STAT CARDS ---- */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr); /* 4 equal columns */
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px 24px;
+      border: 1px solid #e4e4e7;
+      border-left: 4px solid #dc2626; /* red left accent */
+    }
+
+    .stat-card .stat-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #71717a;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .stat-card .stat-value {
+      font-size: 32px;
+      font-weight: 900;
+      color: #0a0a0a;
+      line-height: 1;
+    }
+
+    /* ---- ADMIN DATA TABLES ---- */
+    .admin-table-wrap {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #e4e4e7;
+      overflow: hidden;
+    }
+
+    /* Header row above the table with title and optional action button */
+    .admin-table-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #f4f4f5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .admin-table-header h2 {
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #0a0a0a;
+    }
+
+    /* border-collapse removes double borders between cells */
+    table { width: 100%; border-collapse: collapse; }
+
+    thead th {
+      background: #f9f9f9;
+      padding: 10px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: #71717a;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #f4f4f5;
+    }
+
+    tbody td {
+      padding: 13px 16px;
+      font-size: 14px;
+      color: #0a0a0a;
+      border-bottom: 1px solid #f9f9f9;
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: #fafafa; }
+
+    /* ---- DETAIL PAGE CARD (used on single-record pages) ---- */
+    .admin-card {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #e4e4e7;
+      padding: 24px;
+    }
+
+    .admin-card h2 {
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 2px solid #f4f4f5;
+    }
+
+    /* ---- STATUS PILLS (coloured badges for order status) ---- */
+    .pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .pill-pending  { background:#fef9c3; color:#854d0e; }  /* yellow */
+    .pill-paid     { background:#dcfce7; color:#166534; }  /* green  */
+    .pill-shipped  { background:#dbeafe; color:#1e40af; }  /* blue   */
+    .pill-active   { background:#dcfce7; color:#166534; }  /* green  */
+    .pill-inactive { background:#fee2e2; color:#991b1b; }  /* red    */
+    .pill-staff    { background:#fee2e2; color:#991b1b; }  /* red    */
+
+    /* Row of action buttons (e.g. Edit / Delete) */
+    .action-btns { display:flex; gap:6px; }
+
+    /* ---- INFO ROWS (label + value pairs on detail pages) ---- */
+    .info-row {
+      display: flex;
+      padding: 12px 0;
+      border-bottom: 1px solid #f4f4f5;
+      font-size: 14px;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-row .info-label { width: 160px; font-weight: 700; color: #71717a; flex-shrink:0; text-transform: uppercase; font-size:12px; }
+    .info-row .info-value { color: #0a0a0a; }
+  </style>
+</head>
+<body>
+<div class="admin-shell">
+
+  <!-- SIDEBAR
+       Each nav link has a class="{% block nav_X %}{% endblock %}".
+       The current page sets its block to "active" so the link gets
+       the active CSS styling. -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <a href="{% url 'admin_dashboard' %}">PRO<span>X</span>Y</a>
+      <div style="font-size:10px; color:#52525b; margin-top:4px; font-weight:600; letter-spacing:1px; text-transform:uppercase;">Admin Panel</div>
+    </div>
+
+    <div class="sidebar-label">Main</div>
+
+    <nav class="sidebar-nav">
+      <a href="{% url 'admin_dashboard' %}"      class="{% block nav_dashboard %}{% endblock %}">
+        <span class="nav-icon">&#9732;</span> Dashboard
+      </a>
+      <a href="{% url 'admin_products_list' %}"  class="{% block nav_products %}{% endblock %}">
+        <span class="nav-icon">&#128722;</span> Products
+      </a>
+      <a href="{% url 'admin_orders_list' %}"    class="{% block nav_orders %}{% endblock %}">
+        <span class="nav-icon">&#128230;</span> Orders
+      </a>
+      <a href="{% url 'admin_designs_list' %}"   class="{% block nav_designs %}{% endblock %}">
+        <span class="nav-icon">&#127912;</span> Designs
+      </a>
+      <a href="{% url 'admin_users_list' %}"     class="{% block nav_users %}{% endblock %}">
+        <span class="nav-icon">&#128100;</span> Users
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div style="margin-bottom:6px;">{{ user.username }}</div>
+      <a href="{% url 'home' %}">&#8592; Back to store</a>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT AREA -->
+  <div class="admin-main">
+
+    <!-- TOP BAR: page title on left, user info + logout on right -->
+    <div class="admin-topbar">
+      <div class="page-name">{% block page_name %}Dashboard{% endblock %}</div>
+      <div class="user-info">
+        <span>{{ user.username }}</span>
+        <span class="user-badge">Staff</span>
+        <a href="{% url 'logout' %}" style="color:#dc2626; font-size:13px; font-weight:600;">Logout</a>
+      </div>
+    </div>
+
+    <!-- Each admin page fills this block with its own content -->
+    <div class="admin-content">
+      {% block content %}{% endblock %}
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

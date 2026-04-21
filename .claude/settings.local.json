@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python manage.py shell -c ' *)",
+      "Bash(cp media/templates/tshirt.png media/products/tshirt.png)",
+      "Bash(python -c ' *)",
+      "Bash(python manage.py migrate --plan)",
+      "Bash(python manage.py check)"
+    ]
+  }
+}

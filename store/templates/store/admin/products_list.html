@@ -1,23 +1,49 @@
-{% extends "store/base.html" %}
-{% block title %}Admin • Products{% endblock %}
+{% extends "store/admin/admin_base.html" %}
+{% block title %}Products{% endblock %}
+{% block page_name %}Products{% endblock %}
+{% block nav_products %}active{% endblock %}
 
 {% block content %}
-<h1 class="page-title">Products</h1>
 
-<a class="btn" href="{% url 'admin_products_create' %}">+ Add product</a>
+  <div class="admin-table-wrap">
+    <div class="admin-table-header">
+      <h2>All Products</h2>
+      <a href="{% url 'admin_products_create' %}" class="btn btn-sm">+ Add Product</a>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Price</th>
+          <th>Template</th>
+          <th>Added</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+          <tr>
+            <td>{{ p.id }}</td>
+            <td><strong>{{ p.name }}</strong></td>
+            <td>£{{ p.price }}</td>
+            <td>
+              {% if p.template_image %}<span class="pill pill-active">Yes</span>
+              {% else %}<span class="pill pill-inactive">No</span>{% endif %}
+            </td>
+            <td>{{ p.created_at|date:"d M Y" }}</td>
+            <td>
+              <div class="action-btns">
+                <a href="{% url 'admin_products_edit' p.id %}" class="btn btn-sm">Edit</a>
+                <a href="{% url 'admin_products_delete' p.id %}" class="btn btn-sm btn-danger">Delete</a>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" style="text-align:center; color:#71717a; padding:24px;">No products yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-<div class="card" style="margin-top:14px;">
-  {% for p in products %}
-    <p style="display:flex; justify-content:space-between; gap:12px; align-items:center;">
-      <span><b>{{ p.name }}</b> — £{{ p.price }}</span>
-      <span>
-        <a class="btn" href="{% url 'admin_products_edit' p.id %}">Edit</a>
-        <a class="btn" style="background:#111;" href="{% url 'admin_products_delete' p.id %}">Delete</a>
-      </span>
-    </p>
-    <hr style="border:none;border-top:1px solid #eee;">
-  {% empty %}
-    <p>No products yet.</p>
-  {% endfor %}
-</div>
 {% endblock %}

@@ -1,42 +1,57 @@
 {% extends "store/base.html" %}
+<!-- register.html — Registration page (/register/).
+     Uses block full_content for the full dark background (same as login).
+     Variable from register_view() in views.py:
+       form — a RegisterForm instance (defined in forms.py, extends UserCreationForm)
+     Django's UserCreationForm automatically:
+       - Checks that password1 and password2 match
+       - Enforces password strength rules (min 8 chars, not too common, etc.)
+       - Hashes the password before saving — plain text is NEVER stored -->
 {% block title %}Register • Proxy{% endblock %}
 
-{% block content %}
-<h1 class="page-title">Create account</h1>
+{% block full_content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
 
-<div class="card" style="max-width:520px;">
-  <form method="post">
-    {% csrf_token %}
+    <h1>Create <span>Account</span></h1>
+    <p class="auth-sub">Join Proxy and start designing</p>
 
-    <div class="form-group">
-      <label>Username</label>
-      {{ form.username }}
-      {{ form.username.errors }}
-    </div>
+    <form method="post">
+      {% csrf_token %}
 
-    <div class="form-group">
-      <label>Email</label>
-      {{ form.email }}
-      {{ form.email.errors }}
-    </div>
+      <div class="form-group">
+        <label>Username</label>
+        {{ form.username }}
+        <!-- Show username errors (e.g. "already taken", "invalid characters") -->
+        {% if form.username.errors %}<ul class="errorlist">{% for e in form.username.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
 
-    <div class="form-group">
-      <label>Password</label>
-      {{ form.password1 }}
-      {{ form.password1.errors }}
-    </div>
+      <div class="form-group">
+        <label>Email</label>
+        {{ form.email }}
+        {% if form.email.errors %}<ul class="errorlist">{% for e in form.email.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
 
-    <div class="form-group">
-      <label>Confirm password</label>
-      {{ form.password2 }}
-      {{ form.password2.errors }}
-    </div>
+      <div class="form-group">
+        <label>Password</label>
+        {{ form.password1 }}
+        <!-- Show password errors (e.g. "too short", "too common") -->
+        {% if form.password1.errors %}<ul class="errorlist">{% for e in form.password1.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
 
-    <button class="btn" type="submit">Create account</button>
+      <div class="form-group">
+        <label>Confirm Password</label>
+        {{ form.password2 }}
+        <!-- Shows "passwords don't match" if they typed different things -->
+        {% if form.password2.errors %}<ul class="errorlist">{% for e in form.password2.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
 
-    <p class="desc" style="margin-top:12px;">
-      Already have an account? <a href="{% url 'login' %}">Login</a>
+      <button class="btn btn-primary btn-lg" type="submit" style="width:100%;">Create Account</button>
+    </form>
+
+    <p class="auth-footer">
+      Already have an account? <a href="{% url 'login' %}">Sign in</a>
     </p>
-  </form>
+  </div>
 </div>
 {% endblock %}

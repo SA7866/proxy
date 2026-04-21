@@ -1,0 +1,102 @@
+{% extends "store/admin/admin_base.html" %}
+{% block title %}Designs{% endblock %}
+{% block page_name %}Designs{% endblock %}
+{% block nav_designs %}active{% endblock %}
+
+{% block content %}
+
+  <div class="admin-table-wrap">
+    <div class="admin-table-header">
+      <h2>All Designs</h2>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Preview</th>
+          <th>User</th>
+          <th>Product</th>
+          <th>Size</th>
+          <th>Saved</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in designs %}
+          <tr>
+            <td>{{ d.id }}</td>
+            <td>
+              {% if d.product.template_image %}
+                <canvas id="thumb-{{ d.id }}" width="60" height="43"
+                        style="border-radius:6px; border:1px solid #e4e4e7; background:#f4f4f5; display:block;"
+                        data-template="{{ d.product.template_image.url }}"
+                        data-design="{{ d.design_data|escapejs }}">
+                </canvas>
+              {% else %}
+                <div style="width:60px; height:43px; background:#f4f4f5; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:18px;">&#127912;</div>
+              {% endif %}
+            </td>
+            <td>{{ d.user.username }}</td>
+            <td>{{ d.product.name }}</td>
+            <td>{% if d.size %}<span class="pill pill-active">{{ d.size }}</span>{% else %}&mdash;{% endif %}</td>
+            <td>{{ d.created_at|date:"d M Y" }}</td>
+            <td><a href="{% url 'admin_designs_detail' d.id %}" class="btn btn-sm">View</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" style="text-align:center; color:#71717a; padding:24px;">No designs saved yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+<script>
+document.querySelectorAll("canvas[data-template]").forEach(canvas => {
+  const ctx        = canvas.getContext("2d");
+  const CW = canvas.width, CH = canvas.height;
+  const scaleX = CW / 900, scaleY = CH / 650;
+
+  let raw, designData;
+  try { raw = JSON.parse(canvas.dataset.design); } catch (e) { return; }
+  designData = (typeof raw === "object" && raw !== null) ? raw : (() => { try { return JSON.parse(raw); } catch(e) { return {}; } })();
+
+  function drawAll(tImg, els) {
+    ctx.clearRect(0, 0, CW, CH);
+    ctx.drawImage(tImg, 0, 0, CW, CH);
+    els.forEach(el => {
+      ctx.save();
+      ctx.globalAlpha = el.opacity ?? 1;
+      const x = el.x * scaleX, y = el.y * scaleY,
+            w = el.w * scaleX, h = el.h * scaleY;
+      if (el.type === "text" && el.text) {
+        const size = Math.max(1, Math.round((el.fontSize || 24) * scaleX));
+        ctx.font = `${el.bold?"bold ":""}${el.italic?"italic ":""}${size}px ${el.fontFamily||"Arial"}`;
+        ctx.fillStyle = el.color || "#000";
+        ctx.textBaseline = "top";
+        ctx.fillText(el.text, x + 4*scaleX, y + 4*scaleY);
+      }
+      if (el.type === "image" && el._img) ctx.drawImage(el._img, x, y, w, h);
+      ctx.restore();
+    });
+  }
+
+  const tImg = new Image();
+  tImg.onerror = () => {
+    if (designData.shirtColor) { ctx.fillStyle = designData.shirtColor; ctx.fillRect(0, 0, CW, CH); }
+  };
+  tImg.onload = () => {
+    const elements = (designData.elements || []).slice();
+    const imgEls   = elements.filter(e => e.type === "image" && e.src);
+    let pending    = imgEls.length;
+    if (pending === 0) { drawAll(tImg, elements); return; }
+    imgEls.forEach(el => {
+      const img = new Image();
+      img.onload  = () => { el._img = img; if (--pending === 0) drawAll(tImg, elements); };
+      img.onerror = () => {                  if (--pending === 0) drawAll(tImg, elements); };
+      img.src = el.src;
+    });
+  };
+  tImg.src = canvas.dataset.template;
+});
+</script>
+
+{% endblock %}

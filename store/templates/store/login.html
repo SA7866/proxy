@@ -1,34 +1,55 @@
 {% extends "store/base.html" %}
+<!-- login.html — Login page (/login/).
+     Uses block full_content to get the full dark background (no .container wrapper).
+     Variable from login_view() in views.py:
+       form — Django's built-in AuthenticationForm (handles username + password)
+       next — the URL the user was trying to reach before being redirected here
+              e.g. if they tried to visit /customise/1/ while logged out,
+              next = "/customise/1/" so after login they go straight there -->
 {% block title %}Login • Proxy{% endblock %}
 
-{% block content %}
-<h1 class="page-title">Login</h1>
+{% block full_content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
 
-<div class="card" style="max-width:520px;">
-  <form method="post">
-    {% csrf_token %}
+    <h1>Welcome <span>Back</span></h1>
+    <p class="auth-sub">Sign in to your Proxy account</p>
 
-    {% if form.non_field_errors %}
-      <div class="card" style="border:1px solid #ffb4b4; margin-bottom:12px;">
-        {{ form.non_field_errors }}
+    <!-- Show a hint if the user was redirected here from the customiser -->
+    {% if next %}
+      <div style="background:#fee2e2; border:1px solid #fecaca; color:#991b1b; padding:12px 16px; border-radius:8px; font-size:13px; font-weight:600; margin-bottom:20px;">
+        You need to log in to access the customiser.
       </div>
     {% endif %}
 
-    <div class="form-group">
-      <label>Username</label>
-      {{ form.username }}
-    </div>
+    <!-- Show the error message if username or password was wrong -->
+    {% if form.non_field_errors %}
+      <div class="alert-error">{{ form.non_field_errors }}</div>
+    {% endif %}
 
-    <div class="form-group">
-      <label>Password</label>
-      {{ form.password }}
-    </div>
+    <form method="post">
+      {% csrf_token %}
+      <!-- Hidden field carries the "next" URL through the form submission
+           so Django can redirect back after a successful login -->
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
 
-    <button class="btn" type="submit">Login</button>
+      <div class="form-group">
+        <label>Username</label>
+        <!-- form.username renders the styled input (CSS class was set in login_view) -->
+        {{ form.username }}
+      </div>
 
-    <p class="desc" style="margin-top:12px;">
-      Don’t have an account? <a href="{% url 'register' %}">Register</a>
+      <div class="form-group">
+        <label>Password</label>
+        {{ form.password }}
+      </div>
+
+      <button class="btn btn-primary btn-lg" type="submit" style="width:100%;">Sign In</button>
+    </form>
+
+    <p class="auth-footer">
+      Don't have an account? <a href="{% url 'register' %}">Create one</a>
     </p>
-  </form>
+  </div>
 </div>
 {% endblock %}

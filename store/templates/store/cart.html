@@ -1,26 +1,104 @@
 {% extends "store/base.html" %}
+<!-- cart.html — The shopping cart page (/cart/).
+     Variables from cart_view() in views.py:
+       items — list of dicts, each with: product, qty, subtotal
+       total — Decimal total price of all items combined
+     The cart is stored in the Django session (not the database).
+     No login required — guests can shop too. -->
 {% block title %}Cart • Proxy{% endblock %}
 
 {% block content %}
   <h1 class="page-title">Your Cart</h1>
+  <p class="page-subtitle">Review your items before checkout</p>
 
   {% if items %}
-    {% for item in items %}
-      <div class="card" style="margin-bottom:12px;">
-        <h3>{{ item.product.name }}</h3>
-        <p class="price">£{{ item.product.price }} × {{ item.qty }}</p>
-        <p class="desc">Subtotal: £{{ item.subtotal|floatformat:2 }}</p>
+    {# Two-column layout: items on the left, summary on the right #}
+    <div class="cart-grid">
 
-        <a class="btn" href="{% url 'cart_remove' item.product.id %}">Remove</a>
+      <!-- CART ITEMS LIST -->
+      <div>
+        {% for item in items %}
+          <div class="cart-item">
+
+            {# Product thumbnail image #}
+            {% if item.product.image %}
+              <img class="cart-item-img" src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+            {% else %}
+              <div class="cart-item-img-placeholder"></div>
+            {% endif %}
+
+            <div class="cart-item-info">
+              <h3>{{ item.product.name }}</h3>
+              <p class="qty">£{{ item.product.price }} each</p>
+            </div>
+
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
+              {# floatformat:2 formats the number to 2 decimal places e.g. £40.00 #}
+              <span class="cart-item-price">£{{ item.subtotal|floatformat:2 }}</span>
+
+              <!-- QUANTITY STEPPER
+                   Each button submits the form with the new qty as a hidden value.
+                   cart_update in views.py reads that value and updates the session.
+                   The minus button sends qty - 1; if that drops to 0, the item is removed. -->
+              <form method="post" action="{% url 'cart_update' item.product.id %}" style="display:flex; align-items:center; gap:4px;">
+                {% csrf_token %}
+                {# item.qty|add:'-1' subtracts 1 from the current quantity #}
+                <button type="submit" name="qty" value="{{ item.qty|add:'-1' }}"
+                        style="width:28px; height:28px; border:1px solid #e4e4e7; border-radius:6px; background:#f9f9f9; font-size:16px; cursor:pointer; line-height:1;">−</button>
+                <span style="min-width:28px; text-align:center; font-weight:700; font-size:14px;">{{ item.qty }}</span>
+                <button type="submit" name="qty" value="{{ item.qty|add:'1' }}"
+                        style="width:28px; height:28px; border:1px solid #e4e4e7; border-radius:6px; background:#f9f9f9; font-size:16px; cursor:pointer; line-height:1;">+</button>
+              </form>
+
+              <!-- REMOVE BUTTON
+                   Separate form that posts to cart_remove, which deletes the item entirely. -->
+              <form method="post" action="{% url 'cart_remove' item.product.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+              </form>
+            </div>
+
+          </div>
+        {% endfor %}
       </div>
-    {% endfor %}
 
-    <div class="card">
-      <h3>Total: £{{ total|floatformat:2 }}</h3>
-      <a class="btn" href="{% url 'checkout' %}">Go to checkout</a>
+      <!-- ORDER SUMMARY (sticky sidebar) -->
+      <div class="cart-summary">
+        <h3>Order Summary</h3>
+
+        {# List each item with its subtotal #}
+        {% for item in items %}
+          <div class="summary-row">
+            <span>{{ item.product.name }} &times; {{ item.qty }}</span>
+            <span>£{{ item.subtotal|floatformat:2 }}</span>
+          </div>
+        {% endfor %}
+
+        {# Grand total #}
+        <div class="summary-row total">
+          <span>Total</span>
+          <span>£{{ total|floatformat:2 }}</span>
+        </div>
+
+        <a class="btn btn-primary" href="{% url 'checkout' %}" style="width:100%; margin-top:16px; justify-content:center;">
+          Proceed to Checkout &rarr;
+        </a>
+
+        <a href="{% url 'shop' %}" class="text-muted" style="display:block; text-align:center; margin-top:12px; font-size:13px; color:#6366f1;">
+          &larr; Continue shopping
+        </a>
+      </div>
+
     </div>
 
   {% else %}
-    <p>Your cart is empty.</p>
+    {# Empty cart state #}
+    <div class="empty-state">
+      <div class="empty-icon">🛒</div>
+      <h2>Your cart is empty</h2>
+      <p>Looks like you haven't added anything yet.</p>
+      <a class="btn btn-primary btn-lg" href="{% url 'shop' %}">Start Shopping</a>
+    </div>
   {% endif %}
+
 {% endblock %}

@@ -1,0 +1,52 @@
+{% extends "store/admin/admin_base.html" %}
+<!-- orders_list.html — All orders table (/admin-panel/orders/).
+     Variable from admin_orders_list() in admin_views.py:
+       orders — all Order objects, newest first -->
+{% block title %}Orders{% endblock %}
+{% block page_name %}Orders{% endblock %}
+{% block nav_orders %}active{% endblock %}
+
+{% block content %}
+
+  <div class="admin-table-wrap">
+    <div class="admin-table-header">
+      <h2>All Orders</h2>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Customer</th>
+          <th>Email</th>
+          <th>Total</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in orders %}
+          <tr>
+            <td><strong>#{{ o.id }}</strong></td>
+            <td>{{ o.full_name }}</td>
+            <td>{{ o.email }}</td>
+            <td>£{{ o.total_amount }}</td>
+            <td>
+              <!-- Colour-coded status pill -->
+              {% if o.status == "PENDING" %}<span class="pill pill-pending">Pending</span>
+              {% elif o.status == "PAID" %}<span class="pill pill-paid">Paid</span>
+              {% elif o.status == "SHIPPED" %}<span class="pill pill-shipped">Shipped</span>
+              {% endif %}
+            </td>
+            <!-- |date filter formats a datetime e.g. "21 Apr 2025" -->
+            <td>{{ o.created_at|date:"d M Y" }}</td>
+            <td><a href="{% url 'admin_orders_detail' o.id %}" class="btn btn-sm">View</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" style="text-align:center; color:#71717a; padding:24px;">No orders yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+{% endblock %}

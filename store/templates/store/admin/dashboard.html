@@ -1,25 +1,77 @@
-{% extends "store/base.html" %}
-{% block title %}Admin • Dashboard{% endblock %}
+{% extends "store/admin/admin_base.html" %}
+<!-- dashboard.html — Admin overview page (/admin-panel/).
+     Variables from admin_dashboard() in admin_views.py:
+       product_count  — total number of products
+       order_count    — total number of orders
+       design_count   — total number of saved designs
+       user_count     — total number of registered users
+       recent_orders  — last 5 orders placed -->
+{% block title %}Dashboard{% endblock %}
+{% block page_name %}Dashboard{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
 
 {% block content %}
-<h1 class="page-title">Admin Dashboard</h1>
 
-<div class="grid">
-  <div class="card"><h3>Products</h3><p class="price">{{ product_count }}</p><a class="btn" href="{% url 'admin_products_list' %}">Manage</a></div>
-  <div class="card"><h3>Orders</h3><p class="price">{{ order_count }}</p><a class="btn" href="{% url 'admin_orders_list' %}">View</a></div>
-  <div class="card"><h3>Designs</h3><p class="price">{{ design_count }}</p><a class="btn" href="{% url 'admin_designs_list' %}">View</a></div>
-  <div class="card"><h3>Users</h3><p class="price">{{ user_count }}</p><a class="btn" href="{% url 'admin_users_list' %}">Manage</a></div>
-</div>
+  <!-- STAT CARDS: 4 key numbers shown at a glance -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">Products</div>
+      <div class="stat-value">{{ product_count }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Orders</div>
+      <div class="stat-value">{{ order_count }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Designs</div>
+      <div class="stat-value">{{ design_count }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Users</div>
+      <div class="stat-value">{{ user_count }}</div>
+    </div>
+  </div>
 
-<div class="card" style="margin-top:16px;">
-  <h3>Recent Orders</h3>
-  {% for o in recent_orders %}
-    <p>
-      <b>#{{ o.id }}</b> — {{ o.full_name }} — £{{ o.total_amount }} — <b>{{ o.status }}</b>
-      <a style="float:right;" href="{% url 'admin_orders_detail' o.id %}">Open</a>
-    </p>
-  {% empty %}
-    <p>No orders yet.</p>
-  {% endfor %}
-</div>
+  <!-- RECENT ORDERS TABLE
+       Shows the 5 most recent orders with a link to open each one. -->
+  <div class="admin-table-wrap">
+    <div class="admin-table-header">
+      <h2>Recent Orders</h2>
+      <a href="{% url 'admin_orders_list' %}" class="btn btn-sm btn-outline">View All</a>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Customer</th>
+          <th>Total</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in recent_orders %}
+          <tr>
+            <td><strong>#{{ o.id }}</strong></td>
+            <td>{{ o.full_name }}</td>
+            <td>£{{ o.total_amount }}</td>
+            <td>
+              <!-- Colour-coded status pill -->
+              {% if o.status == "PENDING" %}<span class="pill pill-pending">Pending</span>
+              {% elif o.status == "PAID" %}<span class="pill pill-paid">Paid</span>
+              {% elif o.status == "SHIPPED" %}<span class="pill pill-shipped">Shipped</span>
+              {% endif %}
+            </td>
+            <td>{{ o.created_at|date:"d M Y" }}</td>
+            <td><a href="{% url 'admin_orders_detail' o.id %}" class="btn btn-sm">Open</a></td>
+          </tr>
+        <!-- {% empty %} runs if the recent_orders list is empty -->
+        {% empty %}
+          <tr><td colspan="6" style="text-align:center; color:#71717a; padding:24px;">No orders yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
 {% endblock %}

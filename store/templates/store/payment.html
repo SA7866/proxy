@@ -1,119 +1,128 @@
 {% extends "store/base.html" %}
+<!-- payment.html — Simulated payment page (/payment/<order_id>/).
+     Variables from payment_view() in views.py:
+       order — the Order object created at checkout
+
+     IMPORTANT: This is NOT real payment processing.
+     No actual card details are collected or charged.
+     When the form is submitted, payment_view() simply calls mark_order_paid(order)
+     which sets order.status = "PAID" and saves it.
+
+     The inline script at the bottom formats card inputs live as the user types. -->
 {% block title %}Payment • Proxy{% endblock %}
 
 {% block content %}
-<h1 class="page-title">Payment</h1>
+  <h1 class="page-title">Payment</h1>
+  <p class="page-subtitle">Demo payment — no real card is charged</p>
 
-<div class="grid" style="grid-template-columns: 1.1fr 0.9fr;">
+  {# Two-column: payment form on left, order summary on right #}
+  <div class="payment-grid">
 
-  <!-- LEFT: PAYMENT FORM -->
-  <div class="card">
-    <h3>Payment details</h3>
+    <!-- PAYMENT FORM -->
+    <div class="checkout-card">
+      <h2>Card Details</h2>
 
-    <p class="desc">
-      This is a demo payment screen for the prototype.
-      No real card data is processed or stored.
-    </p>
-
-    <form method="post">
-      {% csrf_token %}
-
-      <div class="form-group">
-        <label>Card number</label>
-        <input
-          class="input-field"
-          type="text"
-          name="card_number"
-          id="card_number"
-          placeholder="1234 5678 9012 3456"
-          maxlength="19"
-          inputmode="numeric"
-          autocomplete="cc-number"
-          required
-        />
-      </div>
-
-      <div class="grid" style="grid-template-columns: 1fr 1fr; gap:12px;">
-        <div class="form-group">
-          <label>Expiry (MM/YY)</label>
-          <input
-            class="input-field"
-            type="text"
-            name="expiry"
-            id="expiry"
-            placeholder="MM/YY"
-            maxlength="5"
-            inputmode="numeric"
-            autocomplete="cc-exp"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label>CVV</label>
-          <input
-            class="input-field"
-            type="password"
-            name="cvv"
-            id="cvv"
-            placeholder="123"
-            maxlength="3"
-            inputmode="numeric"
-            autocomplete="cc-csc"
-            required
-          />
+      <!-- VISUAL CARD PREVIEW
+           This div looks like a credit card. The card number and expiry
+           update in real time as the user types (via the JavaScript below). -->
+      <div class="card-preview">
+        <div class="card-num" id="cardDisplay">•••• •••• •••• ••••</div>
+        <div class="card-meta">
+          <span id="expiryDisplay">MM/YY</span>
+          <span>PROXY STORE</span>
         </div>
       </div>
 
-      <button class="btn" type="submit" style="margin-top:14px;">
-        Pay £{{ order.total_amount }}
-      </button>
-    </form>
+      {# Submitting this form triggers the POST handler in payment_view()
+         which calls mark_order_paid(order) — no real card processing #}
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label>Card Number</label>
+          <input class="input-field" type="text" name="card_number" id="card_number"
+            placeholder="1234 5678 9012 3456" maxlength="19" inputmode="numeric" autocomplete="cc-number" required>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>Expiry (MM/YY)</label>
+            <input class="input-field" type="text" name="expiry" id="expiry"
+              placeholder="MM/YY" maxlength="5" inputmode="numeric" autocomplete="cc-exp" required>
+          </div>
+          <div class="form-group">
+            <label>CVV</label>
+            {# type="password" hides the CVV digits as the user types #}
+            <input class="input-field" type="password" name="cvv" id="cvv"
+              placeholder="•••" maxlength="3" inputmode="numeric" autocomplete="cc-csc" required>
+          </div>
+        </div>
+
+        {# The button shows the actual order total from the database #}
+        <button class="btn btn-primary btn-lg" type="submit" style="width:100%; margin-top:8px;">
+          Pay £{{ order.total_amount }}
+        </button>
+      </form>
+
+      <p class="text-muted text-sm mt-4" style="text-align:center;">
+        🔒 Secure simulated checkout — prototype only
+      </p>
+    </div>
+
+    <!-- ORDER SUMMARY -->
+    <div class="checkout-card" style="position:sticky; top:84px;">
+      <h2>Order #{{ order.id }}</h2>
+
+      <div class="confirm-row">
+        <span>Customer</span>
+        <span>{{ order.full_name }}</span>
+      </div>
+      <div class="confirm-row">
+        <span>Status</span>
+        <span class="status-pill status-pending">{{ order.status }}</span>
+      </div>
+
+      <hr class="divider">
+
+      <div style="display:flex; justify-content:space-between; font-size:20px; font-weight:800;">
+        <span>Total</span>
+        <span>£{{ order.total_amount }}</span>
+      </div>
+    </div>
+
   </div>
 
-  <!-- RIGHT: ORDER SUMMARY -->
-  <div class="card">
-    <h3>Order Summary</h3>
+  <!-- INLINE JAVASCRIPT
+       Provides live formatting feedback as the user types card details.
+       This is purely cosmetic — it doesn't validate or transmit card data. -->
+  <script>
+    const cardInput   = document.getElementById("card_number");
+    const expiryInput = document.getElementById("expiry");
+    const cvvInput    = document.getElementById("cvv");
+    const cardDisplay   = document.getElementById("cardDisplay");   // the visual card on screen
+    const expiryDisplay = document.getElementById("expiryDisplay");
 
-    <p><b>Order #{{ order.id }}</b></p>
-    <p>{{ order.full_name }}</p>
-
-    <p class="price">
-      Total: £{{ order.total_amount }}
-    </p>
-
-    <p>Status: <b>{{ order.status }}</b></p>
-  </div>
-
-</div>
-
-<!-- Demo-only formatting JS -->
-<script>
-  const cardInput = document.getElementById("card_number");
-  const expiryInput = document.getElementById("expiry");
-  const cvvInput = document.getElementById("cvv");
-
-  if (cardInput) {
+    // Format card number: remove non-digits, group into blocks of 4 with spaces
     cardInput.addEventListener("input", () => {
-      let v = cardInput.value.replace(/\D/g, "").slice(0, 16);
-      cardInput.value = v.replace(/(.{4})/g, "$1 ").trim();
+      let v = cardInput.value.replace(/\D/g, "").slice(0, 16); // digits only, max 16
+      cardInput.value = v.replace(/(.{4})/g, "$1 ").trim(); // add space every 4 digits
+      // Pad to 16 with • so the preview always shows 16 characters
+      const padded = v.padEnd(16, "•");
+      cardDisplay.textContent =
+        padded.slice(0,4) + " " + padded.slice(4,8) + " " + padded.slice(8,12) + " " + padded.slice(12,16);
     });
-  }
 
-  if (expiryInput) {
+    // Format expiry: auto-insert the "/" after the month digits
     expiryInput.addEventListener("input", () => {
-      let v = expiryInput.value.replace(/\D/g, "").slice(0, 4);
-      if (v.length >= 3) {
-        v = v.slice(0, 2) + "/" + v.slice(2);
-      }
+      let v = expiryInput.value.replace(/\D/g, "").slice(0, 4); // digits only, max 4
+      if (v.length >= 3) v = v.slice(0,2) + "/" + v.slice(2);   // insert /
       expiryInput.value = v;
+      expiryDisplay.textContent = v || "MM/YY"; // update the card preview
     });
-  }
 
-  if (cvvInput) {
+    // CVV: digits only, max 3
     cvvInput.addEventListener("input", () => {
       cvvInput.value = cvvInput.value.replace(/\D/g, "").slice(0, 3);
     });
-  }
-</script>
+  </script>
 {% endblock %}

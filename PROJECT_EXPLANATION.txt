@@ -1,0 +1,270 @@
+================================================================
+PROXY — PROJECT EXPLANATION
+Final Year Project | Custom Print-on-Demand Web Application
+================================================================
+
+
+----------------------------------------------------------------
+WHAT IS THIS PROJECT?
+----------------------------------------------------------------
+
+Proxy is a custom print-on-demand e-commerce website.
+It lets users:
+  - Browse a shop of clothing products (e.g. jumpers)
+  - Design their own version of a product using a live canvas editor
+  - Add text, choose fonts/colours, upload images onto the product
+  - Save their design to their account
+  - Add products to a cart and go through a checkout
+  - Pay (simulated — no real card processing) and receive a confirmation
+
+Admins (staff users) can:
+  - Manage products (add, edit, delete)
+  - View all orders and update their status (Pending → Paid → Shipped)
+  - View all user-saved designs with a live preview
+  - Manage user accounts (activate/deactivate)
+
+
+----------------------------------------------------------------
+TECHNOLOGIES USED
+----------------------------------------------------------------
+
+BACKEND — Python / Django
+  - Python is the programming language
+  - Django is a web framework for Python that handles:
+      * URL routing (which URL calls which function)
+      * Database access via models (no SQL needed)
+      * HTML template rendering (fills in data inside HTML files)
+      * User authentication (login, logout, register, password hashing)
+      * Session management (the shopping cart)
+      * Form validation (checkout form, register form)
+      * File uploads (product images, design previews, uploaded images)
+
+FRONTEND — HTML / CSS / JavaScript
+  - HTML: structure of every page
+  - CSS: custom styling (written manually, no Bootstrap/Tailwind)
+  - JavaScript: the product customiser canvas editor (customise.js)
+    The canvas editor uses the HTML5 Canvas API to:
+      * Draw the product template image
+      * Let users add/drag/resize text elements
+      * Let users upload and position images
+      * Apply a shirt colour using a pixel-level multiply blend
+      * Undo history (Ctrl+Z)
+      * Save the design as JSON data
+
+DATABASE — SQLite (via Django ORM)
+  - SQLite is a lightweight database stored as a single file (db.sqlite3)
+  - Django's ORM (Object-Relational Mapper) lets us query the database
+    using Python instead of writing SQL queries
+  - Tables (models):
+      * Product    — shop items
+      * Design     — saved user designs
+      * Order      — completed checkouts
+      * OrderItem  — individual items within an order
+      * User       — Django's built-in user model (login/register)
+
+FILE STORAGE — Django Media Files
+  - Uploaded images (product photos, template PNGs, design images)
+    are stored in the media/ folder on the server
+  - Django serves these files during development via MEDIA_URL
+
+
+----------------------------------------------------------------
+PROJECT STRUCTURE
+----------------------------------------------------------------
+
+proxy_ipd/
+│
+├── config/                   Django project settings and main URL file
+│   ├── settings.py           All configuration (database, media files, etc.)
+│   └── urls.py               Top-level URL routing
+│
+├── store/                    The main app — all website code lives here
+│   ├── models.py             Database table definitions
+│   ├── views.py              Page logic (what happens when a URL is visited)
+│   ├── admin_views.py        Admin panel page logic (staff only)
+│   ├── urls.py               Store URL patterns
+│   ├── admin_urls.py         Admin panel URL patterns
+│   ├── forms.py              Form definitions (checkout, register)
+│   │
+│   ├── services/
+│   │   ├── order_service.py  Cart summary + order creation logic
+│   │   └── payment_service.py  Marks an order as paid
+│   │
+│   ├── templates/store/      HTML templates for every page
+│   │   ├── base.html         Main site layout (navbar, footer)
+│   │   ├── home.html         Homepage
+│   │   ├── shop.html         Product listing + search
+│   │   ├── product_detail.html  Single product page
+│   │   ├── cart.html         Shopping cart
+│   │   ├── checkout.html     Delivery address form
+│   │   ├── payment.html      Simulated payment page
+│   │   ├── thank_you.html    Order confirmation
+│   │   ├── customise.html    Product customiser (canvas editor)
+│   │   ├── my_designs.html   User's saved designs
+│   │   ├── my_orders.html    User's order history
+│   │   ├── login.html        Login page
+│   │   ├── register.html     Sign-up page
+│   │   ├── about.html        About Proxy page
+│   │   └── admin/            Admin panel templates
+│   │       ├── admin_base.html     Admin layout (sidebar)
+│   │       ├── dashboard.html      Stats overview
+│   │       ├── products_list.html  All products
+│   │       ├── products_form.html  Add/edit product
+│   │       ├── orders_list.html    All orders
+│   │       ├── orders_detail.html  Single order + status update
+│   │       ├── designs_list.html   All user designs
+│   │       ├── designs_detail.html Single design preview
+│   │       └── users_list.html     All users
+│   │
+│   └── static/store/
+│       ├── customise.js      All JavaScript for the canvas customiser
+│       └── styles.css        All custom CSS for the whole site
+│
+├── media/                    Uploaded files (created automatically)
+│   ├── products/             Product shop images
+│   ├── templates/            Product template PNGs for the customiser
+│   ├── design_previews/      Canvas screenshot PNGs
+│   └── design_images/        User-uploaded images extracted from designs
+│
+├── db.sqlite3                The database file
+└── manage.py                 Django management tool (run server, migrations)
+
+
+----------------------------------------------------------------
+KEY CONCEPTS EXPLAINED
+----------------------------------------------------------------
+
+DJANGO MVT PATTERN (Model-View-Template)
+  - Model:    Defines the database structure (models.py)
+  - View:     Contains the logic — reads DB, processes forms, sends data to template
+  - Template: The HTML file that displays the data to the user
+  Django calls this MVT but it's very similar to MVC (Model-View-Controller).
+
+SESSIONS (Shopping Cart)
+  - Sessions store data on the server tied to a specific browser visitor
+  - The cart is stored as a Python dict in the session:
+    {"3": {"qty": 2}, "7": {"qty": 1}}
+  - No login required — guests can shop too
+  - When checkout is complete, the session cart is cleared
+
+DECORATORS (@login_required, @staff_required)
+  - A decorator is a shortcut that adds behaviour to a function
+  - @login_required: if the user is not logged in, redirect to the login page
+  - @staff_required: if the user is not a staff member, redirect to login
+  - Used on the customiser and all admin panel views
+
+CANVAS API (customise.js)
+  - The HTML5 Canvas is like a whiteboard in the browser
+  - JavaScript draws images, text, and shapes on it
+  - The customiser uses canvas to:
+      * Draw the product template image
+      * Apply shirt colour using multiply pixel maths
+      * Render text and uploaded images on top
+      * Handle mouse events for dragging and resizing elements
+  - The design is saved as JSON (text data describing every element)
+    rather than just a picture, so it can be edited again later
+
+JSON DESIGN DATA
+  - When a design is saved, all canvas elements are converted to JSON:
+    {
+      "shirtColor": "#ff0000",
+      "elements": [
+        {"type": "text", "text": "Hello", "x": 300, "y": 200, "fontSize": 48, ...},
+        {"type": "image", "src": "/media/design_images/design_img_abc.png", "x": 350, ...}
+      ]
+    }
+  - This JSON is stored in the Design.design_data field in the database
+  - The admin preview reads this JSON and reconstructs the design visually
+    using HTML/CSS (shirt colour as background, text as positioned spans)
+
+BASE64 IMAGES
+  - When a user uploads an image in the customiser, the browser reads it
+    as a base64 string (a long text encoding of the image file)
+  - At save time, the Django view extracts this base64 data,
+    decodes it back into a real image file, saves it to media/design_images/,
+    and stores the file URL in the design JSON instead
+  - This prevents the JSON from becoming megabytes in size
+
+SIMULATED PAYMENT
+  - There is no real payment gateway (no Stripe, no PayPal)
+  - Clicking "Pay Now" just sets order.status = "PAID" in the database
+  - In a real system, you would call Stripe's API here, charge the card,
+    and only update the status if the charge succeeded
+
+CUSTOM ADMIN PANEL
+  - Django comes with a built-in /admin/ panel
+  - This project has a custom-built admin panel at /admin-panel/
+  - It's built with the same templates/CSS as the rest of the site
+  - Only accessible to users with is_staff = True in the database
+
+
+----------------------------------------------------------------
+HOW A PAGE REQUEST WORKS (Step by Step)
+----------------------------------------------------------------
+
+Example: User visits /shop/
+
+1. Browser sends a GET request to the Django server
+2. Django checks urls.py — finds that /shop/ maps to the shop() view
+3. Django calls shop(request) in views.py
+4. shop() queries the database: Product.objects.all()
+5. shop() calls render() with the product list
+6. Django fills in the shop.html template with the product data
+7. Django sends the completed HTML back to the browser
+8. Browser displays the page
+
+
+----------------------------------------------------------------
+HOW THE CUSTOMISER SAVES A DESIGN (Step by Step)
+----------------------------------------------------------------
+
+1. User designs on the canvas (customise.js runs in the browser)
+2. User clicks "Save Design"
+3. JavaScript collects all elements into a JSON string
+4. JavaScript tries to take a screenshot (canvas.toDataURL)
+   - Note: Brave browser blocks this — the design still saves without it
+5. JavaScript POSTs the JSON + screenshot to /save-design/<id>/
+6. Django's save_design_view receives the data
+7. For any uploaded images in the JSON (base64 blobs):
+   - Decode the base64 string back to image bytes
+   - Save as a file in media/design_images/
+   - Replace the blob with the file URL in the JSON
+8. Create a Design row in the database with the cleaned JSON
+9. Save the screenshot as a preview image file (if one was captured)
+10. Redirect the user to "My Designs"
+
+
+----------------------------------------------------------------
+REQUIREMENTS / HOW TO RUN
+----------------------------------------------------------------
+
+Install dependencies:
+  pip install -r requirements.txt
+
+Run database migrations (first time or after model changes):
+  python manage.py migrate
+
+Create an admin (staff) account:
+  python manage.py createsuperuser
+
+Start the development server:
+  python manage.py runserver
+
+Then open: http://127.0.0.1:8000/
+
+
+----------------------------------------------------------------
+KNOWN LIMITATIONS (as a student project)
+----------------------------------------------------------------
+
+1. Payment is simulated — no real card processing
+2. Brave browser blocks canvas screenshots (designs still save, just no preview PNG)
+3. SQLite database — fine for development, would need PostgreSQL for production
+4. No email confirmation sent after orders
+5. No stock management — products don't have quantity limits
+6. Images are stored locally — a production site would use cloud storage (e.g. AWS S3)
+
+
+================================================================
+END OF EXPLANATION
+================================================================

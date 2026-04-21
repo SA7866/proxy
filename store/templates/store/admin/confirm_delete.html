@@ -1,15 +1,19 @@
-{% extends "store/base.html" %}
-{% block title %}Admin • Confirm{% endblock %}
+{% extends "store/admin/admin_base.html" %}
+{% block title %}Confirm Delete{% endblock %}
+{% block page_name %}Confirm Delete{% endblock %}
 
 {% block content %}
-<h1 class="page-title">{{ title }}</h1>
 
-<div class="card">
-  <p>{{ message }}</p>
-  <form method="post">
-    {% csrf_token %}
-    <button class="btn" type="submit" style="background:#111;">Yes, delete</button>
-    <a class="btn" href="{% url cancel_url %}">Cancel</a>
-  </form>
-</div>
+  <div class="admin-card" style="max-width:480px;">
+    <h2 style="color:#dc2626;">{{ title }}</h2>
+    <p style="font-size:15px; color:#3f3f46; margin-bottom:24px;">{{ message }}</p>
+    <form method="post" style="display:flex; gap:10px;">
+      {% csrf_token %}
+      <button type="submit" style="background:#dc2626; color:#fff; padding:10px 24px; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-size:14px;">
+        Yes, delete
+      </button>
+      <a href="{% url cancel_url %}" class="btn btn-sm btn-outline" style="padding:10px 20px;">Cancel</a>
+    </form>
+  </div>
+
 {% endblock %}

@@ -1,26 +1,71 @@
 {% extends "store/base.html" %}
+<!-- shop.html — The product listing page (/shop/).
+     Variables from shop() in views.py:
+       products — queryset of Product objects (filtered by search if q is set)
+       q        — the current search term (empty string if no search) -->
 {% block title %}Shop • Proxy{% endblock %}
 
 {% block content %}
   <h1 class="page-title">Shop</h1>
+  <p class="page-subtitle">Browse our range of customisable products</p>
 
-  {% if products %}
+  <!-- SEARCH BAR
+       method="get" sends the search term in the URL as ?q=...
+       This means the URL is shareable and the back button works correctly.
+       The view reads request.GET.get("q") to filter products. -->
+  <form method="get" action="{% url 'shop' %}" style="margin-bottom:24px; display:flex; gap:10px; max-width:420px;">
+    {# value="{{ q }}" pre-fills the box with whatever was searched #}
+    <input name="q" value="{{ q }}" placeholder="Search products…"
+           style="flex:1; padding:10px 14px; border:1.5px solid #e4e4e7; border-radius:8px; font-size:14px; outline:none;">
+    <button type="submit" class="btn btn-primary btn-sm" style="padding:10px 18px;">Search</button>
+    {# Only show the Clear button if a search is active #}
+    {% if q %}<a href="{% url 'shop' %}" class="btn btn-sm btn-outline" style="padding:10px 14px;">Clear</a>{% endif %}
+  </form>
+
+  {# Show a "no results" message if there was a search but nothing matched #}
+  {% if q and not products %}
+    <div class="empty-state">
+      <div class="empty-icon">🔍</div>
+      <h2>No results for "{{ q }}"</h2>
+      <p>Try a different search term.</p>
+      <a class="btn btn-primary btn-lg" href="{% url 'shop' %}">View All Products</a>
+    </div>
+
+  {# Show product cards if there are products #}
+  {% elif products %}
     <div class="grid">
       {% for p in products %}
         <div class="card">
-          {% if p.image %}
-            <img src="{{ p.image.url }}" alt="{{ p.name }}">
-          {% endif %}
-
-          <h3>{{ p.name }}</h3>
-          <p class="price">£{{ p.price }}</p>
-          <p class="desc">{{ p.description }}</p>
-
-          <a class="btn" href="{% url 'product_detail' p.id %}">View</a>
+          <div class="card-img">
+            {% if p.image %}
+              <img src="{{ p.image.url }}" alt="{{ p.name }}">
+            {% else %}
+              <div class="card-img-placeholder">No image</div>
+            {% endif %}
+          </div>
+          <div class="card-body">
+            <h3>{{ p.name }}</h3>
+            <p class="price">£{{ p.price }}</p>
+            <p class="desc">{{ p.description|truncatechars:80 }}</p>
+            <div class="card-actions">
+              <a class="btn btn-primary btn-sm" href="{% url 'product_detail' p.id %}">View</a>
+              {% if user.is_authenticated %}
+                <a class="btn btn-outline btn-sm" href="{% url 'customise' p.id %}">Customise</a>
+              {% else %}
+                <a class="btn btn-outline btn-sm" href="{% url 'login' %}?next={% url 'customise' p.id %}">&#128274; Customise</a>
+              {% endif %}
+            </div>
+          </div>
         </div>
       {% endfor %}
     </div>
+
+  {# Fallback if there are no products in the database at all (no search active) #}
   {% else %}
-    <p>No products yet. Add some in <b>/admin</b>.</p>
+    <div class="empty-state">
+      <div class="empty-icon">🛒</div>
+      <h2>No products yet</h2>
+      <p>Check back soon or add products via the admin panel.</p>
+    </div>
   {% endif %}
 {% endblock %}

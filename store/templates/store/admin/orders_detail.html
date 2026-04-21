@@ -1,0 +1,135 @@
+{% extends "store/admin/admin_base.html" %}
+<!-- orders_detail.html — Single order detail page (/admin-panel/orders/<id>/).
+     Variables from admin_orders_detail() in admin_views.py:
+       order — the Order object
+       items — all OrderItem rows linked to this order (order.items.all) -->
+{% block title %}Order #{{ order.id }}{% endblock %}
+{% block page_name %}Order #{{ order.id }}{% endblock %}
+{% block nav_orders %}active{% endblock %}
+
+{% block content %}
+
+  <!-- Two cards side by side: delivery details | order info + status update -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">
+
+    <!-- DELIVERY DETAILS -->
+    <div class="admin-card">
+      <h2>Delivery Details</h2>
+      <!-- Each .info-row shows a label and its value -->
+      <div class="info-row">
+        <span class="info-label">Name</span>
+        <span class="info-value">{{ order.full_name }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Email</span>
+        <span class="info-value">{{ order.email }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Address</span>
+        <span class="info-value">{{ order.address_line1 }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">City</span>
+        <span class="info-value">{{ order.city }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Postcode</span>
+        <span class="info-value">{{ order.postcode }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Country</span>
+        <span class="info-value">{{ order.country }}</span>
+      </div>
+    </div>
+
+    <!-- ORDER INFO + STATUS UPDATE -->
+    <div class="admin-card">
+      <h2>Order Info</h2>
+      <div class="info-row">
+        <span class="info-label">Order ID</span>
+        <span class="info-value">#{{ order.id }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Placed</span>
+        <span class="info-value">{{ order.created_at|date:"d M Y, H:i" }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Total</span>
+        <span class="info-value"><strong>£{{ order.total_amount }}</strong></span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Account</span>
+        <!-- If the customer checked out as a guest, order.user is null -->
+        <span class="info-value">{% if order.user %}{{ order.user.username }}{% else %}Guest{% endif %}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Status</span>
+        <span class="info-value">
+          {% if order.status == "PENDING" %}<span class="pill pill-pending">Pending</span>
+          {% elif order.status == "PAID" %}<span class="pill pill-paid">Paid</span>
+          {% elif order.status == "SHIPPED" %}<span class="pill pill-shipped">Shipped</span>
+          {% endif %}
+        </span>
+      </div>
+
+      <!-- STATUS UPDATE FORM
+           Posts to admin_orders_update_status() which validates the new value
+           and saves it. Only accepts POST — a URL visit alone can't change status. -->
+      <form method="post" action="{% url 'admin_orders_update_status' order.id %}" style="margin-top:16px; display:flex; gap:8px; align-items:center;">
+        {% csrf_token %}
+        <select name="status" style="padding:8px 12px; border:1px solid #e4e4e7; border-radius:8px; font-size:14px; background:#fff;">
+          <!-- {% if order.status == "X" %}selected{% endif %} pre-selects the current status -->
+          <option value="PENDING" {% if order.status == "PENDING" %}selected{% endif %}>Pending</option>
+          <option value="PAID"    {% if order.status == "PAID"    %}selected{% endif %}>Paid</option>
+          <option value="SHIPPED" {% if order.status == "SHIPPED" %}selected{% endif %}>Shipped</option>
+        </select>
+        <button type="submit" style="background:#dc2626; color:#fff; padding:8px 18px; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
+          Update
+        </button>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- ORDER ITEMS TABLE
+       Shows each product in the order with price, quantity, and subtotal. -->
+  <div class="admin-table-wrap">
+    <div class="admin-table-header">
+      <h2>Items</h2>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Unit Price</th>
+          <th>Qty</th>
+          <th>Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+          <tr>
+            <!-- If the product was deleted from the shop, item.product is null -->
+            <td>{% if item.product %}{{ item.product.name }}{% else %}<em style="color:#71717a;">Deleted product</em>{% endif %}</td>
+            <td>£{{ item.unit_price }}</td>
+            <td>{{ item.qty }}</td>
+            <!-- item.subtotal calls the subtotal() method on OrderItem: qty × unit_price -->
+            <td>£{{ item.subtotal }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" style="text-align:center; color:#71717a; padding:24px;">No items found.</td></tr>
+        {% endfor %}
+        <!-- Grand total row at the bottom of the table -->
+        <tr style="background:#f9f9f9;">
+          <td colspan="3" style="text-align:right; font-weight:700; padding:13px 16px;">Total</td>
+          <td style="font-weight:900; padding:13px 16px;">£{{ order.total_amount }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:16px;">
+    <a href="{% url 'admin_orders_list' %}" style="color:#dc2626; font-size:14px; font-weight:600;">&larr; Back to Orders</a>
+  </div>
+
+{% endblock %}

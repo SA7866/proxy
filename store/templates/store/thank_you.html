@@ -1,22 +1,51 @@
 {% extends "store/base.html" %}
-{% block title %}Thank you • Proxy{% endblock %}
+<!-- thank_you.html — Order confirmation page (/thank-you/<order_id>/).
+     Shown after the user clicks Pay Now on the payment page.
+     Variable from thank_you() in views.py:
+       order — the Order object (now with status = "PAID") -->
+{% block title %}Order Confirmed • Proxy{% endblock %}
 
 {% block content %}
-  <h1 class="page-title">Thank you!</h1>
+  <div class="thankyou-wrap">
 
-  <div class="card">
-    <p>Your order has been placed successfully.</p>
+    <!-- Red circle with a tick icon -->
+    <div class="thankyou-icon">✓</div>
 
-    <h3>Order number: #{{ order.id }}</h3>
+    <h1>Order Confirmed!</h1>
+    <p class="sub">Thank you for your purchase. Your order has been placed successfully.</p>
 
-    <p><b>Name:</b> {{ order.full_name }}</p>
-    <p><b>Email:</b> {{ order.email }}</p>
-    <p><b>Delivery:</b> {{ order.address_line1 }}, {{ order.city }}, {{ order.postcode }}, {{ order.country }}</p>
+    <!-- ORDER DETAILS BOX -->
+    <div class="order-confirm-box">
+      <h3>Order #{{ order.id }}</h3>
 
-    <p class="price">Total: £{{ order.total_amount }}</p>
+      <!-- Each .confirm-row is a label + value pair -->
+      <div class="confirm-row">
+        <span>Name</span>
+        <span>{{ order.full_name }}</span>
+      </div>
+      <div class="confirm-row">
+        <span>Email</span>
+        <span>{{ order.email }}</span>
+      </div>
+      <div class="confirm-row">
+        <span>Delivery</span>
+        <span>{{ order.address_line1 }}, {{ order.city }}, {{ order.postcode }}</span>
+      </div>
+      <div class="confirm-row">
+        <span>Country</span>
+        <span>{{ order.country }}</span>
+      </div>
+      <div class="confirm-row">
+        <span>Status</span>
+        <!-- status-paid CSS class gives it a green colour -->
+        <span class="status-pill status-paid">{{ order.status }}</span>
+      </div>
+      <div class="confirm-row">
+        <span>Total Paid</span>
+        <span style="font-size:18px;">£{{ order.total_amount }}</span>
+      </div>
+    </div>
 
-    <p><b>Status:</b> {{ order.status }}</p>
-
-    <a class="btn" href="{% url 'shop' %}">Back to shop</a>
+    <a class="btn btn-primary btn-lg" href="{% url 'shop' %}">Continue Shopping</a>
   </div>
 {% endblock %}

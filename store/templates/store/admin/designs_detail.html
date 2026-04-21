@@ -1,0 +1,100 @@
+{% extends "store/admin/admin_base.html" %}
+{% block title %}Design #{{ design.id }}{% endblock %}
+{% block page_name %}Design #{{ design.id }}{% endblock %}
+{% block nav_designs %}active{% endblock %}
+
+{% block content %}
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">
+
+    <!-- CSS/HTML design preview -->
+    <div class="admin-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;">
+      <div style="position:relative; width:450px; max-width:100%; height:325px;
+                  background:#f4f4f5; border-radius:10px; border:1px solid #e4e4e7; overflow:hidden;">
+
+        {% if design.product.template_image %}
+          <!-- Shirt colour clipped to the shirt silhouette via CSS mask -->
+          <div style="position:absolute; top:0; left:0; width:100%; height:100%;
+                      background:{{ shirt_color }};
+                      -webkit-mask-image: url('{{ design.product.template_image.url }}');
+                      -webkit-mask-size: contain;
+                      -webkit-mask-position: center;
+                      -webkit-mask-repeat: no-repeat;
+                      mask-image: url('{{ design.product.template_image.url }}');
+                      mask-size: contain;
+                      mask-position: center;
+                      mask-repeat: no-repeat;"></div>
+          <!-- Template outline on top (shadows / seam detail) -->
+          <img src="{{ design.product.template_image.url }}"
+               style="position:absolute; top:0; left:0; width:100%; height:100%;
+                      object-fit:contain; mix-blend-mode:multiply; pointer-events:none;">
+        {% else %}
+          <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:{{ shirt_color }};"></div>
+        {% endif %}
+
+        {% for el in preview_elements %}
+          <div style="position:absolute;
+                      left:{{ el.x }}px; top:{{ el.y }}px;
+                      width:{{ el.w }}px; height:{{ el.h }}px;
+                      opacity:{{ el.opacity }};">
+            {% if el.type == "text" and el.text %}
+              <span style="display:block; white-space:pre; overflow:hidden;
+                           font-size:{{ el.fontSize }}px; color:{{ el.color }};
+                           font-family:{{ el.fontFamily }};
+                           {% if el.bold %}font-weight:bold;{% endif %}
+                           {% if el.italic %}font-style:italic;{% endif %}
+                           {% if el.useBg %}background:{{ el.bgColor }};{% endif %}">{{ el.text }}</span>
+            {% elif el.type == "image" %}
+              {% if el.src %}
+                <img src="{{ el.src }}" style="width:100%; height:100%; object-fit:contain; display:block;">
+              {% else %}
+                <div style="width:100%; height:100%; background:#e2e8f0; border:1px dashed #94a3b8;
+                            border-radius:4px; display:flex; align-items:center; justify-content:center;
+                            font-size:10px; color:#64748b;">&#128247; image</div>
+              {% endif %}
+            {% endif %}
+          </div>
+        {% endfor %}
+
+      </div>
+    </div>
+
+    <!-- Details -->
+    <div class="admin-card">
+      <h2>Design Details</h2>
+      <div class="info-row">
+        <span class="info-label">Design ID</span>
+        <span class="info-value">#{{ design.id }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">User</span>
+        <span class="info-value">{{ design.user.username }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Product</span>
+        <span class="info-value">{{ design.product.name }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Size</span>
+        <span class="info-value">{% if design.size %}{{ design.size }}{% else %}&mdash;{% endif %}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Saved</span>
+        <span class="info-value">{{ design.created_at|date:"d M Y, H:i" }}</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Raw design JSON -->
+  <div class="admin-card">
+    <h2>Design Data (JSON)</h2>
+    <pre style="background:#f4f4f5; padding:16px; border-radius:8px; font-size:12px; overflow-x:auto; white-space:pre-wrap; color:#3f3f46; max-height:320px; overflow-y:auto;">{{ design.design_data }}</pre>
+  </div>
+
+  <div style="margin-top:16px;">
+    <a href="{% url 'admin_designs_list' %}" style="color:#dc2626; font-size:14px; font-weight:600;">&larr; Back to Designs</a>
+  </div>
+
+
+{% endblock %}

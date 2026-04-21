@@ -1,29 +1,97 @@
 {% extends "store/base.html" %}
-{% block title %}Home • Proxy{% endblock %}
+<!-- home.html — The homepage.
+     Uses block full_content instead of block content so the hero
+     section spans the full screen width, outside the .container padding. -->
+{% block title %}Proxy — Custom Print Store{% endblock %}
 
-{% block content %}
-  <h1 class="page-title">Welcome to Proxy</h1>
-  <p>Custom clothing prototype (FYP). Browse products, then customise.</p>
+{% block full_content %}
 
-  <h2 style="margin-top:24px;">Featured Products</h2>
-
-  {% if featured %}
-    <div class="grid">
-      {% for p in featured %}
-        <div class="card">
-          {% if p.image %}
-            <img src="{{ p.image.url }}" alt="{{ p.name }}">
-          {% endif %}
-
-          <h3>{{ p.name }}</h3>
-          <p class="price">£{{ p.price }}</p>
-          <p class="desc">{{ p.description }}</p>
-
-          <a class="btn" href="{% url 'product_detail' p.id %}">View</a>
-        </div>
-      {% endfor %}
+  <!-- HERO BANNER
+       Full-width dark section at the top of the homepage.
+       Defined in the .hero CSS class in styles.css. -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-badge">Custom Print on Demand</div>
+      <h1>Design It.<br><span>Wear It.</span></h1>
+      <p>Browse our products, build your own design with our live canvas editor, and place your order in minutes.</p>
+      <div class="hero-actions">
+        <a href="{% url 'shop' %}" class="btn btn-primary btn-lg">Shop Now</a>
+        <a href="{% url 'about' %}" class="btn btn-outline btn-lg" style="color:#fff; border-color:rgba(255,255,255,0.3);">Learn More</a>
+      </div>
     </div>
-  {% else %}
-    <p>No products yet. Add some in /admin.</p>
-  {% endif %}
+  </section>
+
+  <!-- REST OF PAGE — inside .container for padded layout -->
+  <main class="container">
+
+    <!-- FEATURED PRODUCTS
+         "featured" is passed from the home() view in views.py.
+         It's the 4 newest products from the database. -->
+    <div class="section-header">
+      <h2>Featured Products</h2>
+      <a href="{% url 'shop' %}">View all &rarr;</a>
+    </div>
+
+    {% if featured %}
+      <div class="grid">
+        {% for p in featured %}
+          {# Loop through each product and render a card #}
+          <div class="card">
+            <div class="card-img">
+              {% if p.image %}
+                <img src="{{ p.image.url }}" alt="{{ p.name }}">
+              {% else %}
+                <div class="card-img-placeholder">No image</div>
+              {% endif %}
+            </div>
+            <div class="card-body">
+              <h3>{{ p.name }}</h3>
+              <p class="price">£{{ p.price }}</p>
+              {# truncatechars:80 cuts the description at 80 characters and adds "..." #}
+              <p class="desc">{{ p.description|truncatechars:80 }}</p>
+              <div class="card-actions">
+                <a class="btn btn-primary btn-sm" href="{% url 'product_detail' p.id %}">View Product</a>
+                {# Customise requires login — if not logged in, redirect to login page first #}
+                {% if user.is_authenticated %}
+                  <a class="btn btn-outline btn-sm" href="{% url 'customise' p.id %}">Customise</a>
+                {% else %}
+                  {# ?next= stores where to go after a successful login #}
+                  <a class="btn btn-outline btn-sm" href="{% url 'login' %}?next={% url 'customise' p.id %}">&#128274; Customise</a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      {# Empty state shown when there are no products in the database yet #}
+      <div class="empty-state">
+        <div class="empty-icon">🛍️</div>
+        <h2>No products yet</h2>
+        <p>Add some products in the admin panel to get started.</p>
+      </div>
+    {% endif %}
+
+    <!-- FEATURE HIGHLIGHTS
+         Three static info cards describing the site's key features. -->
+    <div class="grid" style="margin-top:56px; gap:16px;">
+      <div style="background:#fff; border-radius:16px; padding:28px; box-shadow:0 1px 4px rgba(0,0,0,0.06); text-align:center;">
+        <div style="font-size:32px; margin-bottom:12px;">🎨</div>
+        <h3 style="font-size:16px; font-weight:700; margin-bottom:6px;">Live Customiser</h3>
+        <p class="desc" style="margin:0;">Add text and images directly onto your product using our canvas editor.</p>
+      </div>
+      <div style="background:#fff; border-radius:16px; padding:28px; box-shadow:0 1px 4px rgba(0,0,0,0.06); text-align:center;">
+        <div style="font-size:32px; margin-bottom:12px;">🚚</div>
+        <h3 style="font-size:16px; font-weight:700; margin-bottom:6px;">Fast Delivery</h3>
+        <p class="desc" style="margin:0;">Orders are processed quickly and shipped straight to your door.</p>
+      </div>
+      <div style="background:#fff; border-radius:16px; padding:28px; box-shadow:0 1px 4px rgba(0,0,0,0.06); text-align:center;">
+        <div style="font-size:32px; margin-bottom:12px;">💾</div>
+        <h3 style="font-size:16px; font-weight:700; margin-bottom:6px;">Save Your Designs</h3>
+        <p class="desc" style="margin:0;">Log in to save your creations and come back to them any time.</p>
+      </div>
+    </div>
+
+  </main>
+
 {% endblock %}

@@ -1,29 +1,39 @@
+# models.py
+# Defines the database tables (called "models" in Django).
+# Each class = one table. Each attribute = one column.
+
 from django.db import models
 from django.conf import settings
 
 
 class Product(models.Model):
     """
-    Product in the shop (e.g. T-shirt, hoodie).
-    - image = normal product image for shop display
-    - template_image = transparent PNG used inside the customiser canvas
-    - print_* = printable area (box) inside the template image
+    Represents a product in the shop (e.g. T-shirt, hoodie, mug).
+
+    Two images are stored:
+    - image: shown on the shop/product pages
+    - template_image: transparent PNG used on the customiser canvas
+      so users can place text/images inside the printed area
+
+    print_x/y/w/h define the rectangular "printable zone" on the
+    template image (in pixels). The customiser uses these to stop
+    designs going outside the printed area.
     """
-    name = models.CharField(max_length=120)
-    price = models.DecimalField(max_digits=8, decimal_places=2)
+    name        = models.CharField(max_length=120)
+    price       = models.DecimalField(max_digits=8, decimal_places=2)
     description = models.TextField(blank=True)
 
-    # Normal product image for shop page
+    # Shown in shop and product detail pages
     image = models.ImageField(upload_to="products/", blank=True, null=True)
 
-    # Transparent PNG used for the customiser (important)
+    # Used only in the customiser — should be a transparent PNG of the product
     template_image = models.ImageField(upload_to="templates/", blank=True, null=True)
 
-    # Printable area inside template image (pixels)
-    print_x = models.IntegerField(default=150)
-    print_y = models.IntegerField(default=200)
-    print_w = models.IntegerField(default=300)
-    print_h = models.IntegerField(default=400)
+    # Coordinates + size of the printable zone on the template (pixels)
+    print_x = models.IntegerField(default=150)  # left edge
+    print_y = models.IntegerField(default=200)  # top edge
+    print_w = models.IntegerField(default=300)  # width
+    print_h = models.IntegerField(default=400)  # height
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -33,26 +43,35 @@ class Product(models.Model):
 
 class Design(models.Model):
     """
-    Saved custom design made by a user for a product.
-    - design_data stores the design JSON (text, positions, colours, etc.)
-    - preview stores a PNG screenshot so cart/order pages can show it easily
+    A custom design saved by a logged-in user for a specific product.
+
+    design_data: JSON string holding all canvas elements
+                 (text content, position, font size, colour; image src, position, size).
+                 Saved so the design can be displayed later.
+
+    preview: a PNG screenshot of the finished canvas (taken client-side with
+             canvas.toDataURL() and sent as a base64 string). Stored as a real
+             image file so it can be shown on the My Designs page without
+             re-rendering the canvas.
+
+    size: clothing size chosen by the user (S / M / L / XL).
     """
+    # If the user account is deleted, all their designs are deleted too (CASCADE)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="designs"
     )
+    # If the product is deleted, designs linked to it are also deleted
     product = models.ForeignKey(
         Product,
         on_delete=models.CASCADE,
         related_name="designs"
     )
 
-    design_data = models.TextField()
-    preview = models.ImageField(upload_to="design_previews/", blank=True, null=True)
-
-    # size chosen (S/M/L/XL)
-    size = models.CharField(max_length=10, blank=True)
+    design_data = models.TextField()  # JSON string
+    preview     = models.ImageField(upload_to="design_previews/", blank=True, null=True)
+    size        = models.CharField(max_length=10, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -62,34 +81,39 @@ class Design(models.Model):
 
 class Order(models.Model):
     """
-    Simple order model for checkout details.
-    Stores delivery info + totals.
-    Payment is simulated (safe for student project).
+    One completed checkout = one Order row.
+
+    Stores the delivery address + total at the time of purchase.
+    Payment is simulated (no real card processing), so status moves:
+      PENDING → PAID (on the payment page) → SHIPPED (admin sets this)
+
+    user is nullable because we allow guest checkout (not logged in).
+    If the account is later deleted, we keep the order history (SET_NULL).
     """
     STATUS_CHOICES = [
         ("PENDING", "Pending"),
-        ("PAID", "Paid (Simulated)"),
+        ("PAID",    "Paid (Simulated)"),
         ("SHIPPED", "Shipped"),
     ]
 
-    # Link order to a user if logged in
+    # Nullable so guests (not logged in) can still place orders
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
+        on_delete=models.SET_NULL,  # keep order even if user deleted
         null=True,
         blank=True
     )
 
-    full_name = models.CharField(max_length=120)
-    email = models.EmailField()
-
+    # Delivery details filled in at checkout
+    full_name     = models.CharField(max_length=120)
+    email         = models.EmailField()
     address_line1 = models.CharField(max_length=200)
-    city = models.CharField(max_length=120)
-    postcode = models.CharField(max_length=20)
-    country = models.CharField(max_length=60)
+    city          = models.CharField(max_length=120)
+    postcode      = models.CharField(max_length=20)
+    country       = models.CharField(max_length=60)
 
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
+    status       = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -99,18 +123,24 @@ class Order(models.Model):
 
 class OrderItem(models.Model):
     """
-    Each row is one item in an order.
-    Stores product + qty + unit_price at time of purchase.
+    Each row is one line item inside an Order (one product + quantity).
+
+    unit_price is stored at time of purchase so the order history stays
+    accurate even if the product price changes later.
+
+    product uses SET_NULL so if a product is deleted from the shop, old
+    order records are not destroyed — just the product link becomes null.
     """
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
 
-    # If product gets deleted later, we keep order history by setting NULL
+    # Keep order history even if product is deleted later
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
 
-    qty = models.PositiveIntegerField(default=1)
+    qty        = models.PositiveIntegerField(default=1)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     def subtotal(self):
+        """Returns the cost for this line: qty × unit_price."""
         return self.qty * self.unit_price
 
     def __str__(self):

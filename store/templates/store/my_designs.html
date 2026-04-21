@@ -1,25 +1,108 @@
 {% extends "store/base.html" %}
+<!-- my_designs.html — Saved designs page (/my-designs/).
+     Only accessible when logged in (@login_required in views.py).
+     Variable from my_designs_view():
+       designs — queryset of Design objects belonging to the current user -->
 {% block title %}My Designs • Proxy{% endblock %}
 
 {% block content %}
-  <h1 class="page-title">My Designs</h1>
+
+<div style="max-width:1100px; margin:0 auto;">
+
+  <!-- PAGE HEADER with a "+ New Design" button -->
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:28px; flex-wrap:wrap; gap:12px;">
+    <div>
+      <h1 class="page-title" style="margin-bottom:4px;">My Designs</h1>
+      <p class="page-subtitle" style="margin:0;">Your saved custom designs</p>
+    </div>
+    <a class="btn btn-primary" href="{% url 'shop' %}">+ New Design</a>
+  </div>
 
   {% if designs %}
-    <div class="grid">
+
+    <!-- 3-COLUMN GRID — always shows 3 cards per row to use horizontal space -->
+    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px;">
       {% for d in designs %}
-        <div class="card">
-          {% if d.preview %}
-            <img src="{{ d.preview.url }}" alt="Design preview">
-          {% endif %}
-          <h3>{{ d.product.name }}</h3>
-          <p class="desc">Size: {{ d.size|default:"Not set" }}</p>
-          <p class="desc">Created: {{ d.created_at }}</p>
+
+        <div style="background:#fff; border-radius:16px; border:1px solid #e4e4e7; overflow:hidden; display:flex; flex-direction:column;">
+
+          <!-- PREVIEW IMAGE
+               d.preview is a saved PNG screenshot of the canvas.
+               If none exists (e.g. Brave blocked the screenshot), show a placeholder. -->
+          <div style="position:relative; background:#f4f4f5; height:200px; display:flex; align-items:center; justify-content:center;">
+            {% if d.preview %}
+              <img src="{{ d.preview.url }}" alt="Design preview"
+                   style="width:100%; height:100%; object-fit:cover;">
+            {% else %}
+              <div style="text-align:center; color:#94a3b8;">
+                <div style="font-size:36px; margin-bottom:6px;">🎨</div>
+                <div style="font-size:12px; font-weight:600;">No preview</div>
+              </div>
+            {% endif %}
+            <!-- Small badge showing the design ID number -->
+            <span style="position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.55);
+                         color:#fff; font-size:10px; font-weight:700; padding:3px 8px;
+                         border-radius:20px; letter-spacing:0.5px;">#{{ d.id }}</span>
+          </div>
+
+          <!-- CARD BODY -->
+          <div style="padding:16px 18px; display:flex; flex-direction:column; gap:10px; flex:1;">
+
+            <div>
+              <!-- Product name and metadata -->
+              <h3 style="font-size:15px; font-weight:800; margin:0 0 4px;">{{ d.product.name }}</h3>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                {% if d.size %}
+                  <span style="background:#f1f5f9; color:#374151; font-size:11px; font-weight:700;
+                               padding:2px 8px; border-radius:12px;">Size {{ d.size }}</span>
+                {% endif %}
+                <!-- d.created_at|date formats the datetime as "21 Apr 2025" -->
+                <span style="color:#94a3b8; font-size:12px;">{{ d.created_at|date:"d M Y" }}</span>
+              </div>
+            </div>
+
+            <!-- ACTION BUTTONS -->
+            <div style="display:flex; gap:8px; margin-top:auto; flex-wrap:wrap;">
+
+              <!-- Edit Again: opens the customiser with ?design=<id> to restore this design -->
+              <a class="btn btn-primary btn-sm"
+                 href="{% url 'customise' d.product.id %}?design={{ d.id }}"
+                 style="flex:1; text-align:center;">Edit Again</a>
+
+              <!-- Add to Cart: adds the base product (not the customised version) -->
+              <form method="post" action="{% url 'cart_add' d.product.id %}" style="flex:1;">
+                {% csrf_token %}
+                <button class="btn btn-outline btn-sm" type="submit"
+                        style="width:100%;">Add to Cart</button>
+              </form>
+
+              <!-- Delete: asks for confirmation before permanently deleting the design -->
+              <form method="post" action="{% url 'delete_design' d.id %}"
+                    onsubmit="return confirm('Delete this design?');" style="flex:1;">
+                {% csrf_token %}
+                <button class="btn btn-sm" type="submit"
+                        style="width:100%; background:#fee2e2; color:#dc2626; border:1px solid #fca5a5;">Delete</button>
+              </form>
+            </div>
+
+          </div>
         </div>
+
       {% endfor %}
     </div>
+
   {% else %}
-    <div class="card">
-      <p>You haven’t saved any designs yet.</p>
+
+    <!-- Empty state: shown when the user has no saved designs yet -->
+    <div class="empty-state">
+      <div class="empty-icon">🎨</div>
+      <h2>No designs yet</h2>
+      <p>Head to the shop, pick a product and use the customiser to create your first design.</p>
+      <a class="btn btn-primary btn-lg" href="{% url 'shop' %}">Browse Products</a>
     </div>
+
   {% endif %}
+
+</div>
+
 {% endblock %}

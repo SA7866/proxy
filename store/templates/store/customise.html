@@ -1,134 +1,288 @@
 {% extends "store/base.html" %}
 {% load static %}
+<!-- customise.html — Product customiser page (/customise/<product_id>/).
+     Only accessible when logged in (@login_required).
+     Variables from customise_view() in views.py:
+       product        — the Product being customised
+       print_area     — dict {x, y, w, h} defining the printable rectangle
+       initial_design — Python dict of a saved design (if ?design=<id> is in the URL),
+                        or None for a fresh canvas
 
-{% block title %}Customise • Proxy{% endblock %}
+     HOW DATA REACHES JAVASCRIPT:
+       Django renders the template on the server, so we can't pass Python
+       objects directly to JavaScript. Instead we use two techniques:
+         1. json_script tag: safely serialises a Python dict to a JSON <script> tag
+            e.g. {{ print_area|json_script:"printAreaData" }}
+            This creates: <script id="printAreaData" type="application/json">{"x":...}</script>
+            JavaScript can then read it with: JSON.parse(document.getElementById("printAreaData").textContent)
+         2. window.PRODUCT_TEMPLATE_URL: a simple string injected directly into a <script> tag -->
+{% block title %}Customise • {{ product.name }} • Proxy{% endblock %}
 
 {% block content %}
 <h1 class="page-title">Customise: {{ product.name }}</h1>
+<p class="page-subtitle">Design your product using the tools on the right, then save.</p>
 
-<!-- Page-only layout fix (stops overlap even if other CSS changes) -->
 <style>
-  .customiser-wrap{
-    display:flex;
-    gap:24px;
-    align-items:flex-start;
+  /* --- Customiser layout ---
+     Two columns: canvas on left, tool panel on right.
+     On mobile (< 1000px), they stack vertically. */
+  .customiser-wrap {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
   }
-  .customiser-left{
-    flex: 1 1 auto;
-    min-width: 0; /* IMPORTANT: stops flex overflow */
-  }
-  .customiser-right{
-    flex: 0 0 460px; /* fixed tools width */
-    width: 460px;
+  .customiser-left  { flex: 1 1 auto; min-width: 0; }
+  .customiser-right { flex: 0 0 400px; width: 400px; }
+
+  @media (max-width: 1000px) {
+    .customiser-wrap  { flex-direction: column; }
+    .customiser-right { width: 100%; flex: 1 1 auto; }
   }
 
-  @media (max-width: 1000px){
-    .customiser-wrap{
-      flex-direction: column;
-    }
-    .customiser-right{
-      width: 100%;
-      flex: 1 1 auto;
-    }
+  /* --- Tool panel section titles --- */
+  .tool-section { margin-bottom: 4px; }
+
+  .tool-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  /* --- Toggle buttons (Bold / Italic) ---
+     The .active class is added/removed by JavaScript when clicked. */
+  .toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    color: #374151;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .toggle-btn:hover { border-color: #6366f1; color: #6366f1; }
+  .toggle-btn.active { background: #6366f1; border-color: #6366f1; color: #fff; }
+
+  /* --- Colour swatch: a small square colour picker input --- */
+  .color-swatch {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1.5px solid #e2e8f0;
+    cursor: pointer;
+    padding: 2px;
+    background: transparent;
+    flex-shrink: 0;
+  }
+
+  /* --- Opacity slider row --- */
+  .opacity-row { display: flex; align-items: center; gap: 10px; }
+  .opacity-row input[type="range"] { flex: 1; accent-color: #6366f1; cursor: pointer; }
+  .opacity-label { font-size: 13px; font-weight: 700; color: #374151; width: 38px; text-align: right; flex-shrink: 0; }
+
+  /* --- Two-column button grid --- */
+  .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  /* --- Small label above a control --- */
+  .control-label {
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: 600;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 </style>
 
 <div class="customiser-wrap">
 
-  <!-- LEFT: CANVAS -->
+  <!-- LEFT: CANVAS
+       The canvas element is where all drawing happens.
+       width/height set the internal pixel resolution (900x650).
+       CSS width:100% makes it scale down on smaller screens. -->
   <div class="customiser-left">
-    <div class="card canvas-wrap">
-      <div style="position:relative;">
-        <canvas
-          id="designerCanvas"
-          width="900"
-          height="650"
-          style="width:100%; height:auto; background:#f2f2f2; border-radius:12px; display:block;">
-        </canvas>
-      </div>
-
-      <p class="desc" style="margin-top:12px;">
-        The blue dashed box is the print area. Your design must stay inside it.
+    <div style="background:#fff; border-radius:16px; padding:20px; box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+      <canvas
+        id="designerCanvas"
+        width="900"
+        height="650"
+        style="width:100%; height:auto; background:#f1f5f9; border-radius:12px; display:block; cursor:crosshair;">
+      </canvas>
+      <p style="margin-top:10px; font-size:12px; color:#94a3b8; text-align:center;">
+        Blue dashed box = printable area. Keep your design inside it.
       </p>
     </div>
   </div>
 
-  <!-- RIGHT: TOOLS -->
+  <!-- RIGHT: TOOL PANEL -->
   <div class="customiser-right">
-    <div class="card tools-card">
-      <h3 style="margin-top:0;">Tools</h3>
+    <div style="background:#fff; border-radius:16px; padding:20px; box-shadow:0 1px 4px rgba(0,0,0,0.06); display:flex; flex-direction:column; gap:0;">
 
-      <!-- SIZE -->
-      <label style="font-weight:700; display:block; margin-top:10px;">Size</label>
-      <select id="sizeSelect" class="input-field">
-        <option value="S">S</option>
-        <option value="M">M</option>
-        <option value="L">L</option>
-        <option value="XL">XL</option>
-      </select>
+      <!-- SIZE SELECTOR -->
+      <div class="tool-section">
+        <div class="tool-section-title">Product Size</div>
+        <select id="sizeSelect" class="input-field">
+          <option value="S">S — Small</option>
+          <option value="M" selected>M — Medium</option>
+          <option value="L">L — Large</option>
+          <option value="XL">XL — Extra Large</option>
+        </select>
+      </div>
 
-      <hr style="border:none; border-top:1px solid #eee; margin:16px 0;">
+      <hr style="border:none;border-top:1px solid #f1f5f9;margin:14px 0;">
 
-      <!-- TEXT -->
-      <label style="font-weight:700; display:block;">Add text</label>
-      <input id="textInput" class="input-field" placeholder="Type something...">
+      <!-- SHIRT COLOUR
+           Changing this colour tints the shirt using pixel-level multiply blending in JS. -->
+      <div class="tool-section">
+        <div class="tool-section-title">Shirt Colour</div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="color" id="shirtColorInput" class="color-swatch" value="#ffffff" title="Shirt colour">
+          <span style="font-size:13px; color:#64748b; flex:1;">Pick a colour</span>
+          <button id="resetShirtColorBtn" class="btn btn-outline btn-sm" type="button">Reset</button>
+        </div>
+      </div>
 
-      <div style="display:flex; gap:10px; margin-top:10px; align-items:flex-end;">
-        <div style="flex:0 0 110px;">
-          <small style="display:block; margin-bottom:6px;">Size</small>
-          <input id="textSize" type="number" class="input-field"
-                 value="48" min="10" max="120" style="padding:10px 12px;">
+      <hr style="border:none;border-top:1px solid #f1f5f9;margin:14px 0;">
+
+      <!-- TEXT TOOLS
+           JavaScript listens for changes on all these inputs and updates the
+           selected text element on the canvas in real time. -->
+      <div class="tool-section">
+        <div class="tool-section-title">Add Text</div>
+
+        <input id="textInput" class="input-field" placeholder="Type your text here..." style="margin-bottom:10px;">
+
+        <div class="control-label">Font</div>
+        <select id="fontFamily" class="input-field" style="margin-bottom:10px;">
+          <option value="Arial">Arial — Clean &amp; Modern</option>
+          <option value="Impact">Impact — Bold &amp; Strong</option>
+          <option value="Georgia">Georgia — Classic Serif</option>
+          <option value="'Courier New'">Courier New — Monospace</option>
+          <option value="Verdana">Verdana — Wide &amp; Readable</option>
+          <option value="'Times New Roman'">Times New Roman — Traditional</option>
+          <option value="Tahoma">Tahoma — Compact &amp; Clear</option>
+        </select>
+
+        <!-- Size, Bold, Italic, and Text Colour in one row -->
+        <div style="display:grid; grid-template-columns:1fr auto auto auto; gap:8px; align-items:end; margin-bottom:10px;">
+          <div>
+            <div class="control-label">Size</div>
+            <input id="textSize" type="number" class="input-field" value="48" min="10" max="160" style="padding:8px 10px;">
+          </div>
+          <div>
+            <div class="control-label">Style</div>
+            <div style="display:flex; gap:4px;">
+              <button id="boldToggle"   class="toggle-btn" type="button" title="Bold"><b>B</b></button>
+              <button id="italicToggle" class="toggle-btn" type="button" title="Italic"><i>I</i></button>
+            </div>
+          </div>
+          <div>
+            <div class="control-label">Colour</div>
+            <input id="textColor" type="color" class="color-swatch" value="#111111" title="Text colour">
+          </div>
         </div>
 
-        <div style="flex:0 0 90px;">
-          <small style="display:block; margin-bottom:6px;">Colour</small>
-          <input id="textColor" type="color" value="#111111"
-                 style="height:42px; width:70px; border:none; background:transparent;">
+        <!-- Optional coloured background behind the text -->
+        <div style="display:flex; align-items:center; gap:8px; background:#f8fafc; border-radius:8px; padding:8px 12px; margin-bottom:10px;">
+          <input type="checkbox" id="textBgCheck" style="width:16px;height:16px;accent-color:#6366f1;cursor:pointer;">
+          <label for="textBgCheck" style="font-size:13px;font-weight:500;color:#374151;cursor:pointer;flex:1;">Text background</label>
+          <input type="color" id="textBgColor" class="color-swatch" value="#ffffff" title="Background colour">
         </div>
 
-        <div style="flex:1 1 auto;">
-          <button id="addTextBtn" class="btn" type="button" style="width:100%;">
-            Add text
+        <button id="addTextBtn" class="btn btn-primary" type="button" style="width:100%;">
+          + Add Text
+        </button>
+      </div>
+
+      <hr style="border:none;border-top:1px solid #f1f5f9;margin:14px 0;">
+
+      <!-- IMAGE UPLOAD
+           JavaScript reads the file, creates an Image object, and adds it to the canvas. -->
+      <div class="tool-section">
+        <div class="tool-section-title">Upload Image</div>
+        <input id="imageInput" type="file" accept="image/*" class="input-field">
+      </div>
+
+      <hr style="border:none;border-top:1px solid #f1f5f9;margin:14px 0;">
+
+      <!-- SELECTED ELEMENT CONTROLS
+           These only affect whichever element is currently selected on the canvas. -->
+      <div class="tool-section">
+        <div class="tool-section-title">Selected Element</div>
+
+        <!-- Opacity: 0% = invisible, 100% = fully visible -->
+        <div style="margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+            <span style="font-size:13px; font-weight:600; color:#374151;">Opacity</span>
+            <span id="opacityValue" class="opacity-label">100%</span>
+          </div>
+          <div class="opacity-row">
+            <input type="range" id="opacitySlider" min="5" max="100" value="100">
+          </div>
+        </div>
+
+        <!-- Layer order and element management -->
+        <div class="tool-grid">
+          <button id="duplicateBtn"  class="btn btn-outline btn-sm" type="button">Duplicate</button>
+          <button id="deleteBtn"     class="btn btn-danger btn-sm"  type="button">Delete</button>
+          <button id="sendBackBtn"   class="btn btn-outline btn-sm" type="button">Send Back</button>
+          <button id="bringFrontBtn" class="btn btn-outline btn-sm" type="button">Bring Front</button>
+        </div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid #f1f5f9;margin:14px 0;">
+
+      <!-- UNDO + SAVE -->
+      <div class="tool-section">
+        <button id="undoBtn" class="btn btn-outline" type="button" style="width:100%; margin-bottom:10px;">
+          &#8629; Undo &nbsp;<span style="font-size:12px; opacity:0.6;">(Ctrl+Z)</span>
+        </button>
+
+        <!-- SAVE FORM
+             Hidden fields carry the JSON design data and the canvas screenshot PNG
+             (as base64) from JavaScript to Django when the form is submitted.
+             Django's save_design_view() processes these in views.py. -->
+        <form id="saveForm" method="post" action="{% url 'save_design' product.id %}">
+          {% csrf_token %}
+          <input type="hidden" name="design_data"      id="designData">       <!-- JSON of all elements -->
+          <input type="hidden" name="preview_data_url" id="previewDataUrl">   <!-- base64 canvas PNG -->
+          <input type="hidden" name="size"             id="sizeField">        <!-- chosen clothing size -->
+          <button class="btn btn-primary" type="submit" style="width:100%;">
+            Save Design
           </button>
-        </div>
+        </form>
       </div>
 
-      <hr style="border:none; border-top:1px solid #eee; margin:16px 0;">
-
-      <!-- IMAGE -->
-      <label style="font-weight:700; display:block;">Upload image</label>
-      <input id="imageInput" type="file" accept="image/*" class="input-field">
-
-      <div style="display:flex; gap:10px; margin-top:14px;">
-        <button id="deleteBtn" class="btn" type="button" style="background:#111; flex:1;">
-          Delete selected
-        </button>
-        <button id="bringFrontBtn" class="btn" type="button" style="flex:1;">
-          Bring to front
-        </button>
-      </div>
-
-      <hr style="border:none; border-top:1px solid #eee; margin:16px 0;">
-
-      <!-- SAVE -->
-      <form id="saveForm" method="post" action="{% url 'save_design' product.id %}">
-        {% csrf_token %}
-        <input type="hidden" name="design_data" id="designData">
-        <input type="hidden" name="preview_data_url" id="previewDataUrl">
-        <input type="hidden" name="size" id="sizeField">
-
-        <button class="btn" type="submit" style="width:100%; margin-top:6px;">
-          Save design
-        </button>
-      </form>
     </div>
   </div>
 
 </div>
 
+<!-- PASSING DATA FROM DJANGO TO JAVASCRIPT
+     json_script safely serialises a Python dict to a JSON <script> tag.
+     We can't just write {{ print_area }} because that would create invalid JS.
+     Instead we write it as JSON, then parse it in the script below. -->
+{{ print_area|json_script:"printAreaData" }}
+{% if initial_design %}
+  {{ initial_design|json_script:"initialDesignData" }}
+{% endif %}
 <script>
+  // Make the Django-provided values available as global JS variables
   window.PRODUCT_TEMPLATE_URL = "{{ product.template_image.url }}";
-  window.PRINT_AREA = {{ print_area|safe }};
+  window.PRINT_AREA = JSON.parse(document.getElementById("printAreaData").textContent);
+  // If editing a saved design, load its data; otherwise start fresh (null)
+  const _initEl = document.getElementById("initialDesignData");
+  window.INITIAL_DESIGN = _initEl ? JSON.parse(_initEl.textContent) : null;
 </script>
-<script src="{% static 'store/customise.js' %}"></script>
+<!-- Load the main canvas editor JavaScript — ?v=6 busts the browser cache -->
+<script src="{% static 'store/customise.js' %}?v=6"></script>
 {% endblock %}

@@ -1,79 +1,107 @@
 {% extends "store/base.html" %}
+<!-- checkout.html — Delivery address form (/checkout/).
+     Variables from checkout_view() in views.py:
+       form  — a CheckoutForm instance (defined in forms.py)
+       items — cart items list
+       total — cart total
+     FLOW: Cart → Checkout (this page) → Payment → Thank You
+     HOW DJANGO FORMS WORK IN TEMPLATES:
+       {{ form.full_name }}        renders the <input> tag for that field
+       {{ form.full_name.errors }} renders any validation error messages
+       csrf_token tag              inserts a hidden security token (required) -->
 {% block title %}Checkout • Proxy{% endblock %}
 
 {% block content %}
-  <h1 class="page-title">Delivery Details</h1>
+  <h1 class="page-title">Checkout</h1>
+  <p class="page-subtitle">Enter your delivery details below</p>
 
-  <!-- If the Django form has errors, show a simple message -->
+  {# Show a general error banner if any form field failed validation #}
   {% if form.errors %}
-    <div class="card" style="border:1px solid #ffb4b4;">
-      <b style="color:#b00020;">Please fix the highlighted fields and try again.</b>
-    </div>
+    <div class="alert-error">Please fix the highlighted fields and try again.</div>
   {% endif %}
 
-  <div class="grid" style="grid-template-columns: 1.2fr 0.8fr;">
-    <!-- Delivery form -->
-    <div class="card">
-      <h3>Where should we deliver?</h3>
+  {# Two-column layout: delivery form on the left, order summary on the right #}
+  <div class="checkout-grid">
 
+    <!-- DELIVERY FORM -->
+    <div class="checkout-card">
+      <h2>Delivery Details</h2>
+
+      {# method="post" sends data in the request body (not visible in the URL)
+         Django's CheckoutForm validates the submitted data before creating the order #}
       <form method="post">
         {% csrf_token %}
 
-        <!-- Using Django form fields  -->
-        <p>
+        <div class="form-group">
+          <label>Full name</label>
           {{ form.full_name }}
-          {% if form.full_name.errors %}<span style="color:#b00020;">{{ form.full_name.errors }}</span>{% endif %}
-        </p>
+          {# Show any validation errors below the field #}
+          {% if form.full_name.errors %}<ul class="errorlist">{% for e in form.full_name.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
 
-        <p>
+        <div class="form-group">
+          <label>Email address</label>
           {{ form.email }}
-          {% if form.email.errors %}<span style="color:#b00020;">{{ form.email.errors }}</span>{% endif %}
-        </p>
+          {% if form.email.errors %}<ul class="errorlist">{% for e in form.email.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
 
-        <p>
+        <div class="form-group">
+          <label>Address</label>
           {{ form.address_line1 }}
-          {% if form.address_line1.errors %}<span style="color:#b00020;">{{ form.address_line1.errors }}</span>{% endif %}
-        </p>
+          {% if form.address_line1.errors %}<ul class="errorlist">{% for e in form.address_line1.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
 
-        <p>
-          {{ form.city }}
-          {% if form.city.errors %}<span style="color:#b00020;">{{ form.city.errors }}</span>{% endif %}
-        </p>
+        {# City and postcode side by side in a 2-column grid #}
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label>City</label>
+            {{ form.city }}
+            {% if form.city.errors %}<ul class="errorlist">{% for e in form.city.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          <div class="form-group">
+            <label>Postcode</label>
+            {{ form.postcode }}
+            {% if form.postcode.errors %}<ul class="errorlist">{% for e in form.postcode.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+        </div>
 
-        <p>
-          {{ form.postcode }}
-          {% if form.postcode.errors %}<span style="color:#b00020;">{{ form.postcode.errors }}</span>{% endif %}
-        </p>
-
-        <p>
+        <div class="form-group">
+          <label>Country</label>
           {{ form.country }}
-          {% if form.country.errors %}<span style="color:#b00020;">{{ form.country.errors }}</span>{% endif %}
-        </p>
+          {% if form.country.errors %}<ul class="errorlist">{% for e in form.country.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
 
-        <button class="btn" type="submit">Place order</button>
+        <button class="btn btn-primary btn-lg" type="submit" style="width:100%;">
+          Continue to Payment &rarr;
+        </button>
       </form>
     </div>
 
-    <!-- Order summary -->
-    <div class="card">
-      <h3>Your Order</h3>
+    <!-- ORDER SUMMARY
+         position:sticky keeps it visible as the user scrolls the long form.
+         top:84px = 64px navbar + 20px gap -->
+    <div class="checkout-card" style="position:sticky; top:84px;">
+      <h2>Order Summary</h2>
 
       {% for item in items %}
-        <p style="margin:8px 0;">
-          <b>{{ item.product.name }}</b><br>
-          £{{ item.product.price }} × {{ item.qty }}
-          <span style="float:right;">£{{ item.subtotal|floatformat:2 }}</span>
-        </p>
+        <div class="order-line">
+          <div>
+            <div class="item-name">{{ item.product.name }}</div>
+            <div class="item-qty">Qty: {{ item.qty }}</div>
+          </div>
+          <div class="item-price">£{{ item.subtotal|floatformat:2 }}</div>
+        </div>
       {% endfor %}
 
-      <hr style="border:none; border-top:1px solid #eee; margin:12px 0;">
+      <hr class="divider">
 
-      <p class="price">Total: £{{ total|floatformat:2 }}</p>
+      <div style="display:flex; justify-content:space-between; font-size:18px; font-weight:800;">
+        <span>Total</span>
+        <span>£{{ total|floatformat:2 }}</span>
+      </div>
 
-      <p class="desc">
-        Payment step comes next (safe simulated checkout for the prototype).
-      </p>
+      <p class="text-muted mt-4 text-sm">Payment is simulated — no real card is charged.</p>
     </div>
+
   </div>
 {% endblock %}
-
