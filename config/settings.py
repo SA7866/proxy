@@ -6,6 +6,7 @@
 
 from pathlib import Path
 import os
+import dj_database_url
 
 # BASE_DIR is the root folder of the project (where manage.py lives).
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -31,11 +32,11 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'INSECURE-set-DJANGO_SECRET_KEY
 
 # DEBUG = True means Django shows detailed error pages when something goes wrong.
 # ALWAYS set this to False before deploying to a real website — it leaks code details.
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# ALLOWED_HOSTS lists the domain names this site is allowed to run on.
-# Empty = only localhost is allowed (fine for development).
-ALLOWED_HOSTS = []
+# In production Railway sets the ALLOWED_HOSTS env var to the Railway domain.
+# Locally this stays empty which is fine for development.
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else []
 
 
 # -------------------------------------------------------
@@ -61,6 +62,7 @@ INSTALLED_APPS = [
 # -------------------------------------------------------
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',            # Basic security headers
+    'whitenoise.middleware.WhiteNoiseMiddleware',               # Serves static files in production
     'django.contrib.sessions.middleware.SessionMiddleware',     # Enables sessions (needed for cart)
     'django.middleware.common.CommonMiddleware',                # Handles URL trailing slashes
     'django.middleware.csrf.CsrfViewMiddleware',               # Blocks cross-site form attacks
@@ -106,12 +108,18 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # No server needed. Perfect for development and small projects.
 # For a real production site you would switch to PostgreSQL.
 # -------------------------------------------------------
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',  # db.sqlite3 lives in the project root folder
+# In production Railway provides a DATABASE_URL env var — dj_database_url parses it.
+# Locally we fall back to SQLite so development still works without any setup.
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL:
+    DATABASES = {'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
 
 
 # -------------------------------------------------------
@@ -145,7 +153,9 @@ USE_TZ = True             # store timezone-aware datetimes in the database
 # "Static" files are things like styles.css and customise.js — they don't change per user.
 # During development Django serves them automatically.
 # -------------------------------------------------------
-STATIC_URL = 'static/'  # URL prefix: browser requests /static/store/styles.css
+STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # where collectstatic puts files for production
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
 # -------------------------------------------------------
