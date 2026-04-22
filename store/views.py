@@ -345,18 +345,26 @@ def save_design_view(request, product_id):
                 if not src.startswith("data:"):
                     continue  # already a URL — nothing to do
                 try:
-                    # A data URL looks like: "data:image/png;base64,<actual data>"
-                    header, b64 = src.split(",", 1)
-                    # Work out the file extension from the header
-                    ext = "gif" if "gif" in header else ("jpg" if "jpeg" in header else "png")
-                    img_bytes = base64.b64decode(b64)  # decode base64 → raw bytes
-                    filename = f"design_img_{uuid.uuid4().hex}.{ext}"  # unique filename
-                    from django.core.files.storage import default_storage
-                    # Save the file into media/design_images/ and get back the path
-                    path = default_storage.save(f"design_images/{filename}", ContentFile(img_bytes))
-                    el["src"] = default_storage.url(path)  # replace blob with URL
+                    import os, cloudinary.uploader
+                    if os.environ.get('CLOUDINARY_CLOUD_NAME'):
+                        # Upload the base64 data URL directly to Cloudinary with correct resource type
+                        result = cloudinary.uploader.upload(
+                            src,
+                            folder="design_images",
+                            resource_type="image",
+                        )
+                        el["src"] = result["secure_url"]
+                    else:
+                        # Local fallback — save to disk
+                        header, b64 = src.split(",", 1)
+                        ext = "gif" if "gif" in header else ("jpg" if "jpeg" in header else "png")
+                        img_bytes = base64.b64decode(b64)
+                        filename = f"design_img_{uuid.uuid4().hex}.{ext}"
+                        from django.core.files.storage import default_storage
+                        path = default_storage.save(f"design_images/{filename}", ContentFile(img_bytes))
+                        el["src"] = default_storage.url(path)
                 except Exception:
-                    el["src"] = None  # if saving fails, remove the broken blob
+                    el["src"] = None
         design_json = json.dumps(data)  # convert the updated dict back to a JSON string
     except (json.JSONDecodeError, Exception):
         pass  # if JSON parsing fails, save whatever we received
