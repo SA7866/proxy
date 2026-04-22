@@ -148,31 +148,41 @@ img { display: block; max-width: 100%; }
    overflow: hidden clips the glowing circle that would otherwise spill out.
    ===================================================== */
 .hero {
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a0000 40%, #7f1d1d 100%);
+  background: #0a0a0a;
   color: #fff;
   padding: 90px 24px;
   text-align: center;
   position: relative;
   overflow: hidden;
+  isolation: isolate; /* creates a new stacking context so z-index works correctly */
 }
 
-/* Decorative glowing circle behind the hero text — purely visual, no interaction */
-.hero::before {
-  content: '';
+/* Animated GIF background — fills the full hero area */
+.hero-gif {
   position: absolute;
-  top: -50%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(220,38,38,0.2) 0%, transparent 70%);
-  pointer-events: none; /* makes sure clicks pass through to the content */
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.45;
+  z-index: 0;
+  display: block;
+}
+
+/* Dark gradient overlay on top of the GIF — keeps text legible */
+.hero-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, rgba(10,10,10,0.75) 0%, rgba(127,29,29,0.65) 100%);
+  z-index: 1;
 }
 
 .hero-inner {
   max-width: 720px;
   margin: 0 auto;
-  position: relative; /* sits on top of the ::before glow */
+  position: relative;
+  z-index: 2; /* sits above the GIF and overlay */
 }
 
 /* Small label badge above the hero title */

@@ -35,8 +35,13 @@
       <div class="form-group">
         <label>Password</label>
         {{ form.password1 }}
-        <!-- Show password errors (e.g. "too short", "too common") -->
         {% if form.password1.errors %}<ul class="errorlist">{% for e in form.password1.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        <!-- Live hints shown as the user types — JS at the bottom of the file updates these -->
+        <div id="pw-hints" style="margin-top:8px; font-size:12px; display:flex; flex-direction:column; gap:4px;">
+          <div id="hint-len" style="color:#94a3b8;">&#x25CB; At least 8 characters</div>
+          <div id="hint-num" style="color:#94a3b8;">&#x25CB; Not entirely numbers</div>
+          <div id="hint-similar" style="color:#94a3b8;">&#x25CB; Must not be too similar to your username</div>
+        </div>
       </div>
 
       <div class="form-group">
@@ -54,4 +59,32 @@
     </p>
   </div>
 </div>
+
+<script>
+/* Update the password hints live as the user types */
+(function () {
+  const pwInput       = document.querySelector('[name="password1"]');
+  const userInput     = document.querySelector('[name="username"]');
+  const hintLen       = document.getElementById("hint-len");
+  const hintNum       = document.getElementById("hint-num");
+  const hintSimilar   = document.getElementById("hint-similar");
+  if (!pwInput) return;
+
+  function tick(el, ok) {
+    el.textContent = (ok ? "\u25CF " : "\u25CB ") + el.textContent.slice(2);
+    el.style.color = ok ? "#16a34a" : "#94a3b8";
+  }
+
+  function update() {
+    const v    = pwInput.value;
+    const user = (userInput ? userInput.value : "").toLowerCase();
+    tick(hintLen,     v.length >= 8);
+    tick(hintNum,     v.length > 0 && !/^\d+$/.test(v));
+    tick(hintSimilar, v.length > 0 && !v.toLowerCase().includes(user) && !user.includes(v.toLowerCase()));
+  }
+
+  pwInput.addEventListener("input", update);
+  if (userInput) userInput.addEventListener("input", update);
+})();
+</script>
 {% endblock %}

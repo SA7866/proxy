@@ -55,7 +55,7 @@
       </div>
       <div class="info-row">
         <span class="info-label">Total</span>
-        <span class="info-value"><strong>£{{ order.total_amount }}</strong></span>
+        <span class="info-value"><strong>£{{ order.total_amount|floatformat:2 }}</strong></span>
       </div>
       <div class="info-row">
         <span class="info-label">Account</span>
@@ -101,6 +101,7 @@
       <thead>
         <tr>
           <th>Product</th>
+          <th>Custom Design</th>
           <th>Unit Price</th>
           <th>Qty</th>
           <th>Subtotal</th>
@@ -109,20 +110,45 @@
       <tbody>
         {% for item in items %}
           <tr>
-            <!-- If the product was deleted from the shop, item.product is null -->
             <td>{% if item.product %}{{ item.product.name }}{% else %}<em style="color:#71717a;">Deleted product</em>{% endif %}</td>
-            <td>£{{ item.unit_price }}</td>
+            <td>
+              {% if item.design %}
+                <div style="display:flex; align-items:center; gap:8px;">
+                  {% if item.design.preview %}
+                    <img src="{{ item.design.preview.url }}" alt="Design"
+                         style="width:36px; height:36px; object-fit:cover; border-radius:6px; border:1px solid #e4e4e7; flex-shrink:0;">
+                  {% endif %}
+                  <div>
+                    <a href="{% url 'admin_designs_detail' item.design.id %}"
+                       style="font-size:13px; font-weight:700; color:#dc2626; text-decoration:none;">
+                      #{{ item.design.id }}
+                    </a>
+                    {% if item.design.size %}
+                      <div style="font-size:11px; color:#71717a;">Size {{ item.design.size }}</div>
+                    {% endif %}
+                    {% if item.design.status == "APPROVED" %}
+                      <span class="pill pill-paid" style="font-size:10px; padding:2px 6px;">Approved</span>
+                    {% elif item.design.status == "REJECTED" %}
+                      <span class="pill pill-inactive" style="font-size:10px; padding:2px 6px;">Rejected</span>
+                    {% else %}
+                      <span class="pill pill-pending" style="font-size:10px; padding:2px 6px;">Pending</span>
+                    {% endif %}
+                  </div>
+                </div>
+              {% else %}
+                <span style="color:#94a3b8; font-size:13px;">&mdash;</span>
+              {% endif %}
+            </td>
+            <td>£{{ item.unit_price|floatformat:2 }}</td>
             <td>{{ item.qty }}</td>
-            <!-- item.subtotal calls the subtotal() method on OrderItem: qty × unit_price -->
-            <td>£{{ item.subtotal }}</td>
+            <td>£{{ item.subtotal|floatformat:2 }}</td>
           </tr>
         {% empty %}
-          <tr><td colspan="4" style="text-align:center; color:#71717a; padding:24px;">No items found.</td></tr>
+          <tr><td colspan="5" style="text-align:center; color:#71717a; padding:24px;">No items found.</td></tr>
         {% endfor %}
-        <!-- Grand total row at the bottom of the table -->
         <tr style="background:#f9f9f9;">
-          <td colspan="3" style="text-align:right; font-weight:700; padding:13px 16px;">Total</td>
-          <td style="font-weight:900; padding:13px 16px;">£{{ order.total_amount }}</td>
+          <td colspan="4" style="text-align:right; font-weight:700; padding:13px 16px;">Total</td>
+          <td style="font-weight:900; padding:13px 16px;">£{{ order.total_amount|floatformat:2 }}</td>
         </tr>
       </tbody>
     </table>

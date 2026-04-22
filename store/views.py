@@ -80,6 +80,12 @@ def cart_add(request, product_id):
     if request.method != "POST":
         return redirect("product_detail", product_id=product_id)
 
+    product = get_object_or_404(Product, id=product_id)
+
+    # Block adding out-of-stock items
+    if product.stock <= 0:
+        return redirect("product_detail", product_id=product_id)
+
     cart = request.session.get("cart", {})
     key = str(product_id)  # session keys must always be strings
 
@@ -88,10 +94,27 @@ def cart_add(request, product_id):
     except ValueError:
         qty = 1
 
+    # design_id is set when the user clicks "Add to Cart" from My Designs
+    try:
+        design_id = int(request.POST.get("design_id") or 0) or None
+    except ValueError:
+        design_id = None
+
+    current_qty = cart[key]["qty"] if key in cart else 0
+    # Don't allow cart quantity to exceed available stock
+    qty = min(qty, product.stock - current_qty)
+    if qty <= 0:
+        return redirect("cart")
+
     if key in cart:
-        cart[key]["qty"] += qty  # add the chosen quantity on top of what's already there
+        cart[key]["qty"] += qty
+        if design_id:
+            cart[key]["design_id"] = design_id
     else:
-        cart[key] = {"qty": qty}
+        entry = {"qty": qty}
+        if design_id:
+            entry["design_id"] = design_id
+        cart[key] = entry
 
     request.session["cart"] = cart
     request.session.modified = True  # tell Django the session has changed so it saves it
@@ -126,7 +149,14 @@ def cart_update(request, product_id):
     if qty < 1:
         cart.pop(key, None)  # quantity 0 or less = remove from cart
     elif key in cart:
-        cart[key]["qty"] = qty  # update to the new quantity
+        # Cap at available stock so the user can't order more than exists
+        from .models import Product as P
+        try:
+            p = P.objects.get(id=int(product_id))
+            qty = min(qty, p.stock)
+        except P.DoesNotExist:
+            pass
+        cart[key]["qty"] = qty
 
     request.session["cart"] = cart
     request.session.modified = True
@@ -168,6 +198,11 @@ def checkout_view(request):
 
             # Clear the cart so it's empty for next time
             request.session["cart"] = {}
+
+            # Record this order ID in the session so only this browser can pay/view it
+            allowed = request.session.get("allowed_orders", [])
+            allowed.append(order.id)
+            request.session["allowed_orders"] = allowed
             request.session.modified = True
 
             # Redirect to the payment page, passing the new order's ID
@@ -183,14 +218,33 @@ def checkout_view(request):
     })
 
 
+def _user_can_access_order(request, order):
+    """
+    Returns True if this request is allowed to view/pay this order.
+    Logged-in users must own the order.
+    Guests must have created it in this session (checkout stores the ID in allowed_orders).
+    """
+    if request.user.is_authenticated and order.user == request.user:
+        return True
+    if order.id in request.session.get("allowed_orders", []):
+        return True
+    return False
+
+
 def payment_view(request, order_id):
     # Simulated payment — no real card processing.
     # GET: show the "Pay Now" button.
     # POST: mark the order as PAID and redirect to confirmation.
     order = get_object_or_404(Order, id=order_id)
 
+    if not _user_can_access_order(request, order):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("You do not have permission to access this order.")
+
     if request.method == "POST":
         mark_order_paid(order)  # sets order.status = "PAID" and saves
+        from .services.email_service import send_order_confirmation
+        send_order_confirmation(order)  # sends confirmation email to customer
         return redirect("thank_you", order_id=order.id)
 
     return render(request, "store/payment.html", {"order": order})
@@ -199,6 +253,11 @@ def payment_view(request, order_id):
 def thank_you(request, order_id):
     # Order confirmation page — just shows the order details
     order = get_object_or_404(Order, id=order_id)
+
+    if not _user_can_access_order(request, order):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("You do not have permission to access this order.")
+
     return render(request, "store/thank_you.html", {"order": order})
 
 
@@ -322,8 +381,11 @@ def save_design_view(request, product_id):
 
 @login_required
 def my_orders_view(request):
-    # Show all orders placed by the currently logged-in user, newest first
-    orders = Order.objects.filter(user=request.user).order_by("-created_at")
+    # prefetch_related loads all order items and their linked designs in 2 extra queries
+    # instead of one query per item (much more efficient with multiple orders)
+    orders = Order.objects.filter(user=request.user).prefetch_related(
+        "items__product", "items__design"
+    ).order_by("-created_at")
     return render(request, "store/my_orders.html", {"orders": orders})
 
 
@@ -371,30 +433,87 @@ def login_view(request):
     if request.user.is_authenticated:
         return redirect("home")
 
-    # ?next= carries the URL the user was trying to reach before being redirected to login
-    # e.g. /customise/1/ → login → back to /customise/1/
     next_url = request.GET.get("next") or request.POST.get("next") or ""
 
-    if request.method == "POST":
+    # Rate limiting: block after 5 failed attempts within 10 minutes.
+    # Timestamps of failures are stored in the session so they reset when the session expires.
+    import time
+    MAX_ATTEMPTS = 5
+    WINDOW_SECONDS = 600  # 10 minutes
+
+    now = time.time()
+    attempts = [t for t in request.session.get("login_attempts", []) if now - t < WINDOW_SECONDS]
+    rate_limited = len(attempts) >= MAX_ATTEMPTS
+
+    if request.method == "POST" and not rate_limited:
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-            # Staff users go straight to the admin panel
+            request.session.pop("login_attempts", None)  # clear failure count on success
             if next_url:
                 return redirect(next_url)
             return redirect("admin_dashboard" if user.is_staff else "home")
+        else:
+            # Record this failure
+            attempts.append(now)
+            request.session["login_attempts"] = attempts
     else:
         form = AuthenticationForm()
 
-    # Add CSS classes and placeholders to the login fields
     form.fields["username"].widget.attrs.update({"class": "input-field", "placeholder": "Username"})
     form.fields["password"].widget.attrs.update({"class": "input-field", "placeholder": "Password"})
 
-    return render(request, "store/login.html", {"form": form, "next": next_url})
+    return render(request, "store/login.html", {"form": form, "next": next_url, "rate_limited": rate_limited})
 
 
 def logout_view(request):
     # Clears the user's session and sends them back to the homepage
     logout(request)
     return redirect("home")
+
+
+# ============================================================
+# ACCOUNT SETTINGS
+# Lets logged-in users update their email and change their password.
+# update_session_auth_hash keeps the user logged in after a password change
+# (otherwise Django would log them out because the session hash changes).
+# ============================================================
+
+@login_required
+def account_settings_view(request):
+    from django.contrib.auth.forms import PasswordChangeForm
+    from django.contrib.auth import update_session_auth_hash
+
+    email_saved    = False
+    password_saved = False
+    password_form  = PasswordChangeForm(request.user)
+
+    # Apply consistent styling to the password form fields
+    for field in ("old_password", "new_password1", "new_password2"):
+        password_form.fields[field].widget.attrs.update({"class": "input-field"})
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "email":
+            new_email = request.POST.get("email", "").strip()
+            if new_email:
+                request.user.email = new_email
+                request.user.save()
+                email_saved = True
+
+        elif action == "password":
+            password_form = PasswordChangeForm(request.user, request.POST)
+            for field in ("old_password", "new_password1", "new_password2"):
+                password_form.fields[field].widget.attrs.update({"class": "input-field"})
+            if password_form.is_valid():
+                user = password_form.save()
+                update_session_auth_hash(request, user)  # keeps the user logged in
+                password_saved = True
+
+    return render(request, "store/account_settings.html", {
+        "password_form":  password_form,
+        "email_saved":    email_saved,
+        "password_saved": password_saved,
+    })

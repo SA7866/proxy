@@ -1,4 +1,5 @@
 {% extends "store/base.html" %}
+{% load static %}
 <!-- home.html — The homepage.
      Uses block full_content instead of block content so the hero
      section spans the full screen width, outside the .container padding. -->
@@ -10,6 +11,11 @@
        Full-width dark section at the top of the homepage.
        Defined in the .hero CSS class in styles.css. -->
   <section class="hero">
+    <!-- GIF plays behind the text. Drop your file at store/static/store/hero.gif -->
+    <img src="{% static 'store/hero.gif' %}" alt="" class="hero-gif" aria-hidden="true"
+         onerror="this.style.display='none'">
+    <!-- Dark gradient overlay keeps the text readable over any GIF -->
+    <div class="hero-overlay"></div>
     <div class="hero-inner">
       <div class="hero-badge">Custom Print on Demand</div>
       <h1>Design It.<br><span>Wear It.</span></h1>
@@ -18,7 +24,7 @@
         <a href="{% url 'shop' %}" class="btn btn-primary btn-lg">Shop Now</a>
         <a href="{% url 'about' %}" class="btn btn-outline btn-lg" style="color:#fff; border-color:rgba(255,255,255,0.3);">Learn More</a>
       </div>
-    </div>
+    </div><!-- end hero-inner -->
   </section>
 
   <!-- REST OF PAGE — inside .container for padded layout -->

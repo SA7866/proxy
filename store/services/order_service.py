@@ -5,7 +5,7 @@
 
 from decimal import Decimal
 from django.shortcuts import get_object_or_404
-from store.models import Order, OrderItem, Product
+from store.models import Order, OrderItem, Product, Design
 
 
 def build_cart_summary(cart):
@@ -25,15 +25,26 @@ def build_cart_summary(cart):
 
     for product_id_str, data in cart.items():
         # Session keys are always strings, so convert to int for the DB lookup
-        product  = get_object_or_404(Product, id=int(product_id_str))
-        qty      = int(data.get("qty", 1))
-        subtotal = Decimal(str(product.price)) * qty  # use Decimal to avoid float rounding issues
-        total   += subtotal
+        product   = get_object_or_404(Product, id=int(product_id_str))
+        qty       = int(data.get("qty", 1))
+        design_id = data.get("design_id")  # set when adding from My Designs
+        subtotal  = Decimal(str(product.price)) * qty  # use Decimal to avoid float rounding issues
+        total    += subtotal
+
+        # Fetch the Design object so the cart template can show a preview thumbnail
+        design = None
+        if design_id:
+            try:
+                design = Design.objects.get(id=design_id)
+            except Design.DoesNotExist:
+                pass
 
         items.append({
-            "product":  product,
-            "qty":      qty,
-            "subtotal": subtotal,
+            "product":   product,
+            "qty":       qty,
+            "subtotal":  subtotal,
+            "design_id": design_id,
+            "design":    design,
         })
 
     return items, total
@@ -61,13 +72,24 @@ def create_order_from_cart(cart, user, delivery_data):
         **delivery_data  # unpacks full_name, email, address_line1, city, postcode, country
     )
 
-    # Create one OrderItem per product in the cart
+    # Create one OrderItem per product in the cart and deduct from stock
     for item in items:
+        design = None
+        if item.get("design_id"):
+            try:
+                design = Design.objects.get(id=item["design_id"])
+            except Design.DoesNotExist:
+                pass
         OrderItem.objects.create(
             order=order,
             product=item["product"],
             qty=item["qty"],
-            unit_price=item["product"].price  # snapshot price at time of purchase
+            unit_price=item["product"].price,  # snapshot price at time of purchase
+            design=design,
         )
+        # Reduce stock — clamp to 0 so it never goes negative
+        product = item["product"]
+        product.stock = max(0, product.stock - item["qty"])
+        product.save(update_fields=["stock"])
 
     return order

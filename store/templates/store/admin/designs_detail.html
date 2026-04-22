@@ -82,6 +82,30 @@
         <span class="info-label">Saved</span>
         <span class="info-value">{{ design.created_at|date:"d M Y, H:i" }}</span>
       </div>
+      <div class="info-row">
+        <span class="info-label">Status</span>
+        <span class="info-value">
+          {% if design.status == "APPROVED" %}<span class="pill pill-paid">Approved</span>
+          {% elif design.status == "REJECTED" %}<span class="pill pill-inactive">Rejected</span>
+          {% else %}<span class="pill pill-pending">Pending Review</span>{% endif %}
+        </span>
+      </div>
+
+      <!-- Approve / Reject buttons — only shown if the design is not already in that state -->
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        {% if design.status != "APPROVED" %}
+          <form method="post" action="{% url 'admin_designs_approve' design.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm" style="background:#16a34a; color:#fff; border:none;">Approve</button>
+          </form>
+        {% endif %}
+        {% if design.status != "REJECTED" %}
+          <form method="post" action="{% url 'admin_designs_reject' design.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm" style="background:#dc2626; color:#fff; border:none;">Reject</button>
+          </form>
+        {% endif %}
+      </div>
     </div>
 
   </div>

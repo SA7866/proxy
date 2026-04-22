@@ -17,6 +17,7 @@
           <th>User</th>
           <th>Product</th>
           <th>Size</th>
+          <th>Status</th>
           <th>Saved</th>
           <th></th>
         </tr>
@@ -39,11 +40,16 @@
             <td>{{ d.user.username }}</td>
             <td>{{ d.product.name }}</td>
             <td>{% if d.size %}<span class="pill pill-active">{{ d.size }}</span>{% else %}&mdash;{% endif %}</td>
+            <td>
+              {% if d.status == "APPROVED" %}<span class="pill pill-paid">Approved</span>
+              {% elif d.status == "REJECTED" %}<span class="pill pill-inactive">Rejected</span>
+              {% else %}<span class="pill pill-pending">Pending</span>{% endif %}
+            </td>
             <td>{{ d.created_at|date:"d M Y" }}</td>
             <td><a href="{% url 'admin_designs_detail' d.id %}" class="btn btn-sm">View</a></td>
           </tr>
         {% empty %}
-          <tr><td colspan="7" style="text-align:center; color:#71717a; padding:24px;">No designs saved yet.</td></tr>
+          <tr><td colspan="8" style="text-align:center; color:#71717a; padding:24px;">No designs saved yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>

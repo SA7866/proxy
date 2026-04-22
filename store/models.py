@@ -29,6 +29,9 @@ class Product(models.Model):
     # Used only in the customiser — should be a transparent PNG of the product
     template_image = models.ImageField(upload_to="templates/", blank=True, null=True)
 
+    # How many units are available to purchase — decremented when an order is placed
+    stock = models.PositiveIntegerField(default=10)
+
     # Coordinates + size of the printable zone on the template (pixels)
     print_x = models.IntegerField(default=150)  # left edge
     print_y = models.IntegerField(default=200)  # top edge
@@ -69,9 +72,19 @@ class Design(models.Model):
         related_name="designs"
     )
 
+    STATUS_PENDING  = "PENDING"
+    STATUS_APPROVED = "APPROVED"
+    STATUS_REJECTED = "REJECTED"
+    STATUS_CHOICES  = [
+        ("PENDING",  "Pending Review"),
+        ("APPROVED", "Approved"),
+        ("REJECTED", "Rejected"),
+    ]
+
     design_data = models.TextField()  # JSON string
     preview     = models.ImageField(upload_to="design_previews/", blank=True, null=True)
     size        = models.CharField(max_length=10, blank=True)
+    status      = models.CharField(max_length=20, choices=STATUS_CHOICES, default="APPROVED")
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -135,6 +148,9 @@ class OrderItem(models.Model):
 
     # Keep order history even if product is deleted later
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
+
+    # If the customer added to cart from My Designs, we store which design they chose
+    design = models.ForeignKey(Design, on_delete=models.SET_NULL, null=True, blank=True, related_name="order_items")
 
     qty        = models.PositiveIntegerField(default=1)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)

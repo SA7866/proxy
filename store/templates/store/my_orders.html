@@ -32,7 +32,7 @@
             <span style="color:#94a3b8; font-size:13px;">{{ order.created_at|date:"d M Y, H:i" }}</span>
           </div>
           <div style="display:flex; align-items:center; gap:12px;">
-            <span style="font-size:16px; font-weight:800; color:#0a0a0a;">£{{ order.total_amount }}</span>
+            <span style="font-size:16px; font-weight:800; color:#0a0a0a;">£{{ order.total_amount|floatformat:2 }}</span>
             <!-- Colour-coded status pill — different background for each status -->
             {% if order.status == "PENDING" %}
               <span style="background:#fef9c3; color:#854d0e; font-size:11px; font-weight:700;
@@ -68,15 +68,24 @@
                 {% endif %}
                 <div>
                   <div style="font-size:14px; font-weight:600; color:#0a0a0a;">
-                    <!-- If the product was deleted from the shop, item.product is null -->
                     {% if item.product %}{{ item.product.name }}{% else %}<em style="color:#94a3b8;">Deleted product</em>{% endif %}
                   </div>
-                  <!-- unit_price is the price snapshot at time of purchase (doesn't change if price changes later) -->
-                  <div style="font-size:12px; color:#94a3b8;">Qty: {{ item.qty }} &times; £{{ item.unit_price }}</div>
+                  <div style="font-size:12px; color:#94a3b8;">Qty: {{ item.qty }} &times; £{{ item.unit_price|floatformat:2 }}</div>
+                  {% if item.design %}
+                    <div style="display:flex; align-items:center; gap:6px; margin-top:5px;
+                                background:#f4f4f5; border-radius:6px; padding:4px 8px; width:fit-content;">
+                      {% if item.design.preview %}
+                        <img src="{{ item.design.preview.url }}" alt="Design"
+                             style="width:28px; height:28px; object-fit:cover; border-radius:4px; border:1px solid #e4e4e7;">
+                      {% endif %}
+                      <span style="font-size:11px; font-weight:700; color:#52525b;">
+                        Custom Design #{{ item.design.id }}{% if item.design.size %} &middot; Size {{ item.design.size }}{% endif %}
+                      </span>
+                    </div>
+                  {% endif %}
                 </div>
               </div>
-              <!-- item.subtotal calls the subtotal() method on OrderItem (qty × unit_price) -->
-              <span style="font-size:14px; font-weight:700; color:#0a0a0a;">£{{ item.subtotal }}</span>
+              <span style="font-size:14px; font-weight:700; color:#0a0a0a;">£{{ item.subtotal|floatformat:2 }}</span>
             </div>
           {% endfor %}
         </div>

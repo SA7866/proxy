@@ -1,0 +1,38 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — Page Not Found • Proxy</title>
+  <link rel="stylesheet" href="{% static 'store/styles.css' %}?v=21">
+  <style>
+    body { background:#111; display:flex; flex-direction:column; min-height:100vh; }
+    .error-wrap {
+      flex:1; display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      padding:60px 20px; text-align:center;
+    }
+    .error-code {
+      font-size:120px; font-weight:900; color:#dc2626;
+      line-height:1; letter-spacing:-4px; margin-bottom:8px;
+    }
+    .error-title { font-size:28px; font-weight:800; color:#fff; margin-bottom:12px; }
+    .error-sub   { font-size:16px; color:#71717a; margin-bottom:36px; max-width:420px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-inner">
+      <div class="brand"><a href="/">PRO<span style="color:#dc2626;">X</span>Y</a></div>
+    </div>
+  </nav>
+
+  <div class="error-wrap">
+    <div class="error-code">404</div>
+    <h1 class="error-title">Page Not Found</h1>
+    <p class="error-sub">The page you're looking for doesn't exist or has been moved.</p>
+    <a class="btn btn-primary btn-lg" href="/">Go Home</a>
+  </div>
+</body>
+</html>

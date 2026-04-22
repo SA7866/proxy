@@ -14,13 +14,16 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
+# Wire up custom error pages (shown when DEBUG = False in production)
+handler404 = "django.views.defaults.page_not_found"
+handler500 = "django.views.defaults.server_error"
+
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # Django's built-in /admin/ is intentionally excluded — we use our own admin panel at /admin-panel/
     path('', include('store.urls')),
 ]
 

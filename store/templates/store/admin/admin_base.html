@@ -80,7 +80,7 @@
 
     .sidebar-nav a:hover { background: #1a1a1a; color: #fff; }
 
-    /* "active" class is set by the current page using {% block nav_X %}active{% endblock %} */
+    /* "active" class is set by each page to highlight the current sidebar link */
     .sidebar-nav a.active {
       background: rgba(220,38,38,0.15);
       color: #dc2626;
@@ -292,9 +292,8 @@
 <div class="admin-shell">
 
   <!-- SIDEBAR
-       Each nav link has a class="{% block nav_X %}{% endblock %}".
-       The current page sets its block to "active" so the link gets
-       the active CSS styling. -->
+       Each nav link has a class that child pages set to "active"
+       to highlight the current section in the sidebar. -->
   <aside class="admin-sidebar">
     <div class="sidebar-brand">
       <a href="{% url 'admin_dashboard' %}">PRO<span>X</span>Y</a>

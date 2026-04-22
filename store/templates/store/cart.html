@@ -30,6 +30,22 @@
             <div class="cart-item-info">
               <h3>{{ item.product.name }}</h3>
               <p class="qty">£{{ item.product.price }} each</p>
+              {% if item.design %}
+                <!-- Show which custom design is linked to this cart item -->
+                <div style="display:flex; align-items:center; gap:8px; margin-top:6px;
+                            background:#f4f4f5; border-radius:8px; padding:6px 10px; width:fit-content;">
+                  {% if item.design.preview %}
+                    <img src="{{ item.design.preview.url }}" alt="Design preview"
+                         style="width:36px; height:36px; object-fit:cover; border-radius:4px; border:1px solid #e4e4e7;">
+                  {% endif %}
+                  <div>
+                    <div style="font-size:11px; font-weight:700; color:#71717a; text-transform:uppercase; letter-spacing:0.5px;">Custom Design #{{ item.design.id }}</div>
+                    {% if item.design.size %}
+                      <div style="font-size:11px; color:#52525b;">Size: {{ item.design.size }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endif %}
             </div>
 
             <div style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
@@ -69,7 +85,10 @@
         {# List each item with its subtotal #}
         {% for item in items %}
           <div class="summary-row">
-            <span>{{ item.product.name }} &times; {{ item.qty }}</span>
+            <span>
+              {{ item.product.name }} &times; {{ item.qty }}
+              {% if item.design %}<span style="font-size:11px; color:#71717a;"> (Custom)</span>{% endif %}
+            </span>
             <span>£{{ item.subtotal|floatformat:2 }}</span>
           </div>
         {% endfor %}

@@ -22,12 +22,15 @@
       </div>
     {% endif %}
 
-    <!-- Show the error message if username or password was wrong -->
-    {% if form.non_field_errors %}
+    {% if rate_limited %}
+      <div style="background:#fee2e2; border:1px solid #fecaca; color:#991b1b; padding:12px 16px; border-radius:8px; font-size:13px; font-weight:600; margin-bottom:20px;">
+        Too many failed attempts. Please wait 10 minutes before trying again.
+      </div>
+    {% elif form.non_field_errors %}
       <div class="alert-error">{{ form.non_field_errors }}</div>
     {% endif %}
 
-    <form method="post">
+    <form method="post" {% if rate_limited %}style="pointer-events:none; opacity:0.5;"{% endif %}>
       {% csrf_token %}
       <!-- Hidden field carries the "next" URL through the form submission
            so Django can redirect back after a successful login -->

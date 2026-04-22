@@ -36,11 +36,19 @@
     <div class="grid">
       {% for p in products %}
         <div class="card">
-          <div class="card-img">
+          <div class="card-img" style="position:relative;">
             {% if p.image %}
-              <img src="{{ p.image.url }}" alt="{{ p.name }}">
+              <img src="{{ p.image.url }}" alt="{{ p.name }}"
+                   style="{% if p.stock == 0 %}opacity:0.5;{% endif %}">
             {% else %}
               <div class="card-img-placeholder">No image</div>
+            {% endif %}
+            {% if p.stock == 0 %}
+              <div style="position:absolute; top:10px; right:10px; background:#dc2626;
+                          color:#fff; font-size:11px; font-weight:700; padding:3px 10px;
+                          border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;">
+                Out of Stock
+              </div>
             {% endif %}
           </div>
           <div class="card-body">
@@ -49,10 +57,12 @@
             <p class="desc">{{ p.description|truncatechars:80 }}</p>
             <div class="card-actions">
               <a class="btn btn-primary btn-sm" href="{% url 'product_detail' p.id %}">View</a>
-              {% if user.is_authenticated %}
-                <a class="btn btn-outline btn-sm" href="{% url 'customise' p.id %}">Customise</a>
-              {% else %}
-                <a class="btn btn-outline btn-sm" href="{% url 'login' %}?next={% url 'customise' p.id %}">&#128274; Customise</a>
+              {% if p.stock > 0 %}
+                {% if user.is_authenticated %}
+                  <a class="btn btn-outline btn-sm" href="{% url 'customise' p.id %}">Customise</a>
+                {% else %}
+                  <a class="btn btn-outline btn-sm" href="{% url 'login' %}?next={% url 'customise' p.id %}">&#128274; Customise</a>
+                {% endif %}
               {% endif %}
             </div>
           </div>

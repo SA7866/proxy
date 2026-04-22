@@ -27,9 +27,11 @@ urlpatterns = [
     path("orders/<int:order_id>/status/",          admin_views.admin_orders_update_status, name="admin_orders_update_status"),
 
     # --- Designs ---
-    # View all saved user designs and inspect individual ones
-    path("designs/",                               admin_views.admin_designs_list,   name="admin_designs_list"),
-    path("designs/<int:design_id>/",               admin_views.admin_designs_detail, name="admin_designs_detail"),
+    # View all saved user designs and inspect/approve/reject individual ones
+    path("designs/",                               admin_views.admin_designs_list,    name="admin_designs_list"),
+    path("designs/<int:design_id>/",               admin_views.admin_designs_detail,  name="admin_designs_detail"),
+    path("designs/<int:design_id>/approve/",       admin_views.admin_designs_approve, name="admin_designs_approve"),
+    path("designs/<int:design_id>/reject/",        admin_views.admin_designs_reject,  name="admin_designs_reject"),
 
     # --- Users ---
     # View all user accounts and toggle whether a user can log in (active/inactive)

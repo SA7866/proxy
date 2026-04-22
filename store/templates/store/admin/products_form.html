@@ -8,6 +8,10 @@
   <div class="admin-card" style="max-width:640px;">
     <h2>{% if mode == "create" %}Create Product{% else %}Edit: {{ product.name }}{% endif %}</h2>
 
+    {% if error %}
+      <div style="background:#fee2e2; color:#991b1b; padding:10px 14px; border-radius:8px; font-size:14px; font-weight:600; margin-bottom:16px;">{{ error }}</div>
+    {% endif %}
+
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
 
@@ -21,6 +25,12 @@
         <label class="info-label" style="display:block; margin-bottom:6px;">Price (£)</label>
         <input style="width:100%; padding:9px 12px; border:1px solid #e4e4e7; border-radius:8px; font-size:14px;"
                name="price" type="number" step="0.01" value="{{ product.price|default:'' }}" required>
+      </div>
+
+      <div class="info-row" style="display:block; padding:0; border:none; margin-bottom:14px;">
+        <label class="info-label" style="display:block; margin-bottom:6px;">Stock Quantity</label>
+        <input style="width:100%; padding:9px 12px; border:1px solid #e4e4e7; border-radius:8px; font-size:14px;"
+               name="stock" type="number" min="0" value="{{ product.stock|default:10 }}" required>
       </div>
 
       <div class="info-row" style="display:block; padding:0; border:none; margin-bottom:14px;">

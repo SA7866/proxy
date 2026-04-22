@@ -5,20 +5,29 @@
 # This file is imported automatically when the server starts.
 
 from pathlib import Path
+import os
 
 # BASE_DIR is the root folder of the project (where manage.py lives).
-# Path(__file__) is this settings.py file; .parent.parent goes two folders up to reach the root.
-# Used below to build other paths like BASE_DIR / "media".
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load .env file into os.environ if it exists.
+# This keeps secrets out of the codebase — .env is in .gitignore so it's never committed.
+_env_file = BASE_DIR / '.env'
+if _env_file.exists():
+    for _line in _env_file.read_text().splitlines():
+        if '=' in _line and not _line.startswith('#'):
+            _k, _, _v = _line.partition('=')
+            os.environ.setdefault(_k.strip(), _v.strip())
 
 
 # -------------------------------------------------------
 # SECURITY
 # -------------------------------------------------------
 
-# SECRET_KEY is used by Django to sign cookies and sessions.
-# Keep this private — never share it or commit it to a public repo in production.
-SECRET_KEY = 'django-insecure-2%ceb!8t^w=4(9hrt!vam-y4^omn5(9a=rr3njx0h_#))q9s@d'
+# SECRET_KEY signs cookies and CSRF tokens — must stay private.
+# Read from the environment (set in .env locally, or as a real env var in production).
+# Falls back to an obviously-insecure value so the server refuses to start silently.
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'INSECURE-set-DJANGO_SECRET_KEY-in-.env')
 
 # DEBUG = True means Django shows detailed error pages when something goes wrong.
 # ALWAYS set this to False before deploying to a real website — it leaks code details.
@@ -71,7 +80,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],          # Extra template directories (none — we use app templates)
+        'DIRS': [BASE_DIR / 'store' / 'templates'],  # allows 404.html/500.html to be found at root of templates dir
         'APP_DIRS': True,    # Look for templates inside each app's templates/ folder
         'OPTIONS': {
             'context_processors': [
@@ -160,3 +169,16 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024  # 20 MB
 # When a page requires login (@login_required) and the user isn't logged in,
 # Django redirects them here. After logging in they go back to where they were.
 LOGIN_URL = "/login/"
+
+
+# -------------------------------------------------------
+# EMAIL (Gmail SMTP)
+# Credentials are loaded from .env — never hardcoded here.
+# -------------------------------------------------------
+EMAIL_BACKEND   = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST      = 'smtp.gmail.com'
+EMAIL_PORT      = 587
+EMAIL_USE_TLS   = True
+EMAIL_HOST_USER     = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL  = f'Proxy Store <{EMAIL_HOST_USER}>'

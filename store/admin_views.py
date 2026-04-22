@@ -6,10 +6,29 @@
 from django.contrib.auth.decorators import user_passes_test
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
+from django.db.models import Sum
 
 import json
+from PIL import Image
 
 from .models import Product, Order, Design
+
+
+def _is_valid_image(file_obj):
+    """
+    Uses Pillow to verify the uploaded file is a real image.
+    Checks the actual file content, not just the filename or browser-reported MIME type.
+    Returns True if valid, False if not an image or the file is corrupt.
+    """
+    if file_obj is None:
+        return True  # no file uploaded — that's fine, field is optional
+    try:
+        img = Image.open(file_obj)
+        img.verify()       # checks file integrity without fully decoding
+        file_obj.seek(0)   # reset file pointer so Django can still save it
+        return True
+    except Exception:
+        return False
 
 
 # -------------------------------------------------------
@@ -30,12 +49,17 @@ staff_required = user_passes_test(staff_only)
 # -------------------------------------------------------
 @staff_required
 def admin_dashboard(request):
-    # Collect counts and recent orders to display on the dashboard
+    # Sum total_amount across all PAID and SHIPPED orders — excludes pending (unpaid)
+    revenue = Order.objects.filter(
+        status__in=["PAID", "SHIPPED"]
+    ).aggregate(total=Sum("total_amount"))["total"] or 0
+
     return render(request, "store/admin/dashboard.html", {
         "product_count": Product.objects.count(),
         "order_count":   Order.objects.count(),
         "design_count":  Design.objects.count(),
         "user_count":    User.objects.count(),
+        "revenue":       revenue,
         "recent_orders": Order.objects.order_by("-created_at")[:5]
     })
 
@@ -59,12 +83,22 @@ def admin_products_create(request):
     Manual form handling (no Django Form class) keeps it simple for admin use.
     """
     if request.method == "POST":
+        image          = request.FILES.get("image")
+        template_image = request.FILES.get("template_image")
+
+        if not _is_valid_image(image) or not _is_valid_image(template_image):
+            return render(request, "store/admin/products_form.html", {
+                "mode": "create", "product": None,
+                "error": "Uploaded file is not a valid image."
+            })
+
         Product.objects.create(
             name           = request.POST.get("name", "").strip(),
             price          = request.POST.get("price") or 0,
+            stock          = int(request.POST.get("stock") or 10),
             description    = request.POST.get("description", "").strip(),
-            image          = request.FILES.get("image"),           # shop image
-            template_image = request.FILES.get("template_image"),  # customiser PNG
+            image          = image,
+            template_image = template_image,
             print_x        = int(request.POST.get("print_x") or 270),
             print_y        = int(request.POST.get("print_y") or 210),
             print_w        = int(request.POST.get("print_w") or 300),
@@ -91,13 +125,23 @@ def admin_products_edit(request, product_id):
     if request.method == "POST":
         product.name        = request.POST.get("name", "").strip()
         product.price       = request.POST.get("price") or 0
+        product.stock       = int(request.POST.get("stock") or product.stock)
         product.description = request.POST.get("description", "").strip()
 
-        # Only update images if a new file was uploaded — keeps existing images otherwise
-        if request.FILES.get("image"):
-            product.image = request.FILES["image"]
-        if request.FILES.get("template_image"):
-            product.template_image = request.FILES["template_image"]
+        # Only update images if a new file was uploaded — validate first
+        new_image    = request.FILES.get("image")
+        new_template = request.FILES.get("template_image")
+
+        if not _is_valid_image(new_image) or not _is_valid_image(new_template):
+            return render(request, "store/admin/products_form.html", {
+                "mode": "edit", "product": product,
+                "error": "Uploaded file is not a valid image."
+            })
+
+        if new_image:
+            product.image = new_image
+        if new_template:
+            product.template_image = new_template
 
         # Fall back to current value if the field was left blank
         product.print_x = int(request.POST.get("print_x") or product.print_x)
@@ -150,7 +194,7 @@ def admin_orders_list(request):
 @staff_required
 def admin_orders_detail(request, order_id):
     order = get_object_or_404(Order, id=order_id)
-    items = order.items.all()  # uses related_name="items" set on OrderItem
+    items = order.items.select_related("product", "design").all()
     return render(request, "store/admin/orders_detail.html", {"order": order, "items": items})
 
 
@@ -182,6 +226,26 @@ def admin_designs_list(request):
     # select_related fetches user + product in the same query (more efficient)
     designs = Design.objects.select_related("user", "product").order_by("-created_at")
     return render(request, "store/admin/designs_list.html", {"designs": designs})
+
+
+@staff_required
+def admin_designs_approve(request, design_id):
+    """Sets design status to APPROVED. Only accepts POST."""
+    design = get_object_or_404(Design, id=design_id)
+    if request.method == "POST":
+        design.status = Design.STATUS_APPROVED
+        design.save()
+    return redirect("admin_designs_detail", design_id=design.id)
+
+
+@staff_required
+def admin_designs_reject(request, design_id):
+    """Sets design status to REJECTED. Only accepts POST."""
+    design = get_object_or_404(Design, id=design_id)
+    if request.method == "POST":
+        design.status = Design.STATUS_REJECTED
+        design.save()
+    return redirect("admin_designs_detail", design_id=design.id)
 
 
 @staff_required

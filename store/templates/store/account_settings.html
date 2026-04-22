@@ -1,0 +1,109 @@
+{% extends "store/base.html" %}
+<!-- account_settings.html — Lets logged-in users update their email and password.
+     Variables from account_settings_view() in views.py:
+       password_form  — Django's PasswordChangeForm (old password + new x2)
+       email_saved    — True if the email was just updated successfully
+       password_saved — True if the password was just changed successfully -->
+{% block title %}Account Settings • Proxy{% endblock %}
+
+{% block content %}
+<div style="max-width:560px; margin:0 auto;">
+
+  <h1 class="page-title" style="margin-bottom:6px;">Account Settings</h1>
+  <p class="page-subtitle" style="margin-bottom:32px;">Update your email or change your password.</p>
+
+  <!-- ---- UPDATE EMAIL ---- -->
+  <div style="background:#fff; border-radius:16px; border:1px solid #e4e4e7; padding:28px; margin-bottom:20px;">
+    <h2 style="font-size:15px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:20px; padding-bottom:14px; border-bottom:2px solid #f4f4f5;">Email Address</h2>
+
+    {% if email_saved %}
+      <div style="background:#dcfce7; color:#166534; padding:10px 14px; border-radius:8px; font-size:14px; font-weight:600; margin-bottom:16px;">Email updated successfully.</div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="email">
+      <div class="form-group">
+        <label>New Email</label>
+        <!-- value pre-fills the current email so the user can see what's stored -->
+        <input type="email" name="email" class="input-field"
+               value="{{ request.user.email }}" placeholder="your@email.com" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;">Save Email</button>
+    </form>
+  </div>
+
+  <!-- ---- CHANGE PASSWORD ---- -->
+  <div style="background:#fff; border-radius:16px; border:1px solid #e4e4e7; padding:28px;">
+    <h2 style="font-size:15px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:20px; padding-bottom:14px; border-bottom:2px solid #f4f4f5;">Change Password</h2>
+
+    {% if password_saved %}
+      <div style="background:#dcfce7; color:#166534; padding:10px 14px; border-radius:8px; font-size:14px; font-weight:600; margin-bottom:16px;">Password changed successfully.</div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="password">
+
+      <div class="form-group">
+        <label>Current Password</label>
+        {{ password_form.old_password }}
+        {% if password_form.old_password.errors %}
+          <ul class="errorlist">{% for e in password_form.old_password.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label>New Password</label>
+        {{ password_form.new_password1 }}
+        {% if password_form.new_password1.errors %}
+          <ul class="errorlist">{% for e in password_form.new_password1.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% endif %}
+        <!-- Live strength hints — JS below fills these in as the user types -->
+        <div id="pw-hints" style="margin-top:8px; display:none; font-size:12px; display:flex; flex-direction:column; gap:4px;">
+          <div id="hint-len"    style="color:#94a3b8;">&#x25CB; At least 8 characters</div>
+          <div id="hint-num"    style="color:#94a3b8;">&#x25CB; Not entirely numbers</div>
+          <div id="hint-common" style="color:#94a3b8;">&#x25CB; Avoid common passwords (e.g. password123)</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Confirm New Password</label>
+        {{ password_form.new_password2 }}
+        {% if password_form.new_password2.errors %}
+          <ul class="errorlist">{% for e in password_form.new_password2.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;">Change Password</button>
+    </form>
+  </div>
+
+</div>
+
+<script>
+/* Show live password strength hints as the user types their new password */
+(function () {
+  const input = document.querySelector('[name="new_password1"]');
+  const hints = document.getElementById("pw-hints");
+  if (!input || !hints) return;
+
+  const hintLen    = document.getElementById("hint-len");
+  const hintNum    = document.getElementById("hint-num");
+
+  hints.style.display = "flex";
+
+  function tick(el, ok) {
+    el.textContent = (ok ? "\u25CF " : "\u25CB ") + el.textContent.slice(2);
+    el.style.color = ok ? "#16a34a" : "#94a3b8";
+  }
+
+  input.addEventListener("input", function () {
+    const v = input.value;
+    tick(hintLen, v.length >= 8);
+    tick(hintNum, v.length > 0 && !/^\d+$/.test(v));
+  });
+})();
+</script>
+
+{% endblock %}

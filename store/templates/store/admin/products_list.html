@@ -16,6 +16,7 @@
           <th>#</th>
           <th>Name</th>
           <th>Price</th>
+          <th>Stock</th>
           <th>Template</th>
           <th>Added</th>
           <th>Actions</th>
@@ -27,6 +28,15 @@
             <td>{{ p.id }}</td>
             <td><strong>{{ p.name }}</strong></td>
             <td>£{{ p.price }}</td>
+            <td>
+              {% if p.stock == 0 %}
+                <span class="pill pill-inactive">Out of Stock</span>
+              {% elif p.stock <= 5 %}
+                <span class="pill pill-pending">{{ p.stock }} (Low)</span>
+              {% else %}
+                <span class="pill pill-active">{{ p.stock }}</span>
+              {% endif %}
+            </td>
             <td>
               {% if p.template_image %}<span class="pill pill-active">Yes</span>
               {% else %}<span class="pill pill-inactive">No</span>{% endif %}
@@ -40,7 +50,7 @@
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="6" style="text-align:center; color:#71717a; padding:24px;">No products yet.</td></tr>
+          <tr><td colspan="7" style="text-align:center; color:#71717a; padding:24px;">No products yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>
