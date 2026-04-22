@@ -97,6 +97,7 @@ const history = [];
 // Once it's fully loaded (onload), compute the background mask and then draw.
 // -------------------------------------------------------
 const templateImg  = new Image();
+templateImg.crossOrigin = "anonymous";
 templateImg.src    = templateUrl;
 templateImg.onload = () => {
   // Build the background mask once — tells us which pixels are shirt vs background
