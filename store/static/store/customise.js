@@ -46,8 +46,10 @@ const textBgColor     = document.getElementById("textBgColor");
 const imageInput = document.getElementById("imageInput");
 
 // --- Element controls (apply to whichever element is selected) ---
-const opacitySlider = document.getElementById("opacitySlider");
-const opacityValue  = document.getElementById("opacityValue");
+const opacitySlider  = document.getElementById("opacitySlider");
+const opacityValue   = document.getElementById("opacityValue");
+const rotationSlider = document.getElementById("rotationSlider");
+const rotationValue  = document.getElementById("rotationValue");
 const deleteBtn     = document.getElementById("deleteBtn");
 const duplicateBtn  = document.getElementById("duplicateBtn");
 const sendBackBtn   = document.getElementById("sendBackBtn");
@@ -277,7 +279,8 @@ function serializeElements() {
     id: el.id,
     type: el.type,
     x: el.x, y: el.y, w: el.w, h: el.h,
-    opacity: el.opacity ?? 1,
+    opacity:  el.opacity  ?? 1,
+    rotation: el.rotation ?? 0,
     // Text-specific properties (undefined for image elements)
     text:       el.type === "text" ? el.text       : undefined,
     fontSize:   el.type === "text" ? el.fontSize   : undefined,
@@ -471,24 +474,38 @@ function maxFontSizeForText(el) {
 
 
 // -------------------------------------------------------
-// OPACITY SLIDER
-// When the user moves the slider, update the selected element's opacity and redraw.
+// OPACITY + ROTATION SLIDERS
+// When the user moves a slider, update the selected element and redraw.
 // -------------------------------------------------------
 function syncOpacityUI() {
   const el  = getSelected();
   const val = el ? Math.round((el.opacity ?? 1) * 100) : 100;
   opacitySlider.value      = val;
   opacityValue.textContent = val + "%";
+  const rot = el ? (el.rotation ?? 0) : 0;
+  rotationSlider.value      = rot;
+  rotationValue.textContent = rot + "°";
 }
 
 opacitySlider.addEventListener("input", () => {
-  const val = parseInt(opacitySlider.value) / 100; // convert 0–100 to 0.0–1.0
+  const val = parseInt(opacitySlider.value) / 100;
   opacityValue.textContent = opacitySlider.value + "%";
   const el = getSelected();
   if (el) { el.opacity = val; draw(); }
 });
 
 opacitySlider.addEventListener("change", () => {
+  if (getSelected()) pushHistory();
+});
+
+rotationSlider.addEventListener("input", () => {
+  const deg = parseInt(rotationSlider.value);
+  rotationValue.textContent = deg + "°";
+  const el = getSelected();
+  if (el) { el.rotation = deg; draw(); }
+});
+
+rotationSlider.addEventListener("change", () => {
   if (getSelected()) pushHistory(); // save undo state when slider is released
 });
 
@@ -510,23 +527,33 @@ function drawPrintArea() {
 }
 
 // Draws one element (text or image) onto the canvas
+// MDN ctx.rotate: https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/rotate
 function drawElement(el) {
   ctx.save();
-  ctx.globalAlpha = el.opacity ?? 1; // apply the element's opacity
+
+  // Apply rotation around the element's centre point
+  if (el.rotation) {
+    const cx = el.x + el.w / 2;
+    const cy = el.y + el.h / 2;
+    ctx.translate(cx, cy);
+    ctx.rotate((el.rotation * Math.PI) / 180); // convert degrees to radians
+    ctx.translate(-cx, -cy);
+  }
+
+  ctx.globalAlpha = el.opacity ?? 1;
 
   // If this element is selected, draw a blue selection border and resize handle
   if (el.id === selectedId) {
-    ctx.globalAlpha = 1; // always draw the selection UI at full opacity
+    ctx.globalAlpha = 1;
     ctx.strokeStyle = "#2563eb";
     ctx.lineWidth   = 2;
     ctx.strokeRect(el.x, el.y, el.w, el.h);
     ctx.fillStyle = "#2563eb";
-    ctx.fillRect(el.x + el.w - 14, el.y + el.h - 14, 14, 14); // resize handle square
-    ctx.globalAlpha = el.opacity ?? 1; // restore element opacity for the content
+    ctx.fillRect(el.x + el.w - 14, el.y + el.h - 14, 14, 14);
+    ctx.globalAlpha = el.opacity ?? 1;
   }
 
   if (el.type === "text") {
-    // Optionally fill a background colour behind the text
     if (el.useBg && el.bgColor) {
       ctx.fillStyle = el.bgColor;
       ctx.fillRect(el.x, el.y, el.w, el.h);
@@ -873,7 +900,8 @@ saveForm.addEventListener("submit", () => {
   const safeElements = elements.map(el => ({
     id: el.id, type: el.type,
     x: el.x, y: el.y, w: el.w, h: el.h,
-    opacity:    el.opacity ?? 1,
+    opacity:    el.opacity  ?? 1,
+    rotation:   el.rotation ?? 0,
     text:       el.type === "text"  ? el.text       : null,
     fontSize:   el.type === "text"  ? el.fontSize   : null,
     color:      el.type === "text"  ? el.color      : null,
