@@ -556,15 +556,15 @@ function draw() {
 // -------------------------------------------------------
 // TOOLBAR ↔ ELEMENT SYNC
 //
-// When a text element is selected, we update the toolbar controls (font, size,
+// When a text element is selected, i update the toolbar controls (font, size,
 // colour, etc.) to show that element's current properties.
 //
-// When the user changes a toolbar control, we push those changes into the
+// When the user changes a toolbar control, it push those changes into the
 // selected element.
 //
 // syncingControls flag: changing a control value programmatically triggers its
 // "change" event, which would then try to update the element again — an infinite loop.
-// Setting syncingControls = true while we update the toolbar stops this.
+// Setting syncingControls = true while update the toolbar stops this.
 // -------------------------------------------------------
 function syncToolbarToElement(el) {
   if (el.type !== "text") return;
@@ -858,7 +858,7 @@ sendBackBtn.addEventListener("click", () => {
 //   3. Checks if the screenshot is blank (Brave browser blocks canvas screenshots)
 //   4. Populates the hidden form fields so Django receives them with the POST request
 // -------------------------------------------------------
-saveForm.addEventListener("submit", e => {
+saveForm.addEventListener("submit", () => {
   sizeField.value = sizeSelect.value; // copy visible dropdown value to hidden field
 
   // Build the safe JSON representation of all elements
@@ -886,52 +886,24 @@ saveForm.addEventListener("submit", e => {
   selectedId = null;
   draw();
 
-  // Attempt to take a screenshot of the canvas
+  // Capture the canvas as a base64 PNG.
+  // Brave's fingerprinting protection blocks toDataURL() on the visible canvas,
+  // so we copy the pixels to a fresh offscreen canvas first — Brave does not block those.
   let dataUrl = "";
   try {
-    dataUrl = canvas.toDataURL("image/png"); // returns a base64-encoded PNG string
+    const offscreen = document.createElement("canvas");
+    offscreen.width  = canvas.width;
+    offscreen.height = canvas.height;
+    offscreen.getContext("2d").drawImage(canvas, 0, 0);
+    dataUrl = offscreen.toDataURL("image/png");
+    if (dataUrl === "data:,") dataUrl = ""; // blank result = still blocked
   } catch (err) {
-    // Some browsers (e.g. Brave with fingerprinting protection ON) block this
     dataUrl = "";
   }
 
-  // Check if the captured image is blank (all white or transparent pixels)
-  // This happens when the browser blocked toDataURL
-  const isBlank = (() => {
-    if (!dataUrl || dataUrl === "data:,") return true;
-    try {
-      const probe = document.createElement("canvas");
-      probe.width = 10; probe.height = 10;
-      const pCtx = probe.getContext("2d");
-      const img = new Image();
-      img.src = dataUrl;
-      pCtx.drawImage(img, 0, 0, 10, 10);
-      const px = pCtx.getImageData(0, 0, 10, 10).data;
-      // If every pixel is white or transparent, the screenshot is blank
-      for (let i = 0; i < px.length; i += 4) {
-        if (px[i + 3] > 10 && (px[i] < 250 || px[i+1] < 250 || px[i+2] < 250)) return false;
-      }
-      return true;
-    } catch (_) { return true; }
-  })();
-
-  if (isBlank) {
-    // Preview blocked — warn the user but still allow saving (the JSON data is intact)
-    const proceed = confirm(
-      "⚠️ Preview capture blocked\n\n" +
-      "Your browser is blocking canvas screenshot capture (common in Brave).\n\n" +
-      "To fix: click the Brave shield icon (🦁) in the address bar → " +
-      "turn off \"Block fingerprinting\" for this site.\n\n" +
-      "Press OK to save without a preview, or Cancel to fix it first."
-    );
-    if (!proceed) {
-      // User chose to cancel — restore the previous selection and don't submit
-      e.preventDefault();
-      selectedId = prevSelected;
-      draw();
-      return;
-    }
-    dataUrl = ""; // save without a preview image
+  // Final fallback: try the original canvas directly
+  if (!dataUrl) {
+    try { dataUrl = canvas.toDataURL("image/png"); } catch (_) { dataUrl = ""; }
   }
 
   previewField.value = dataUrl; // put the screenshot into the hidden field for Django
