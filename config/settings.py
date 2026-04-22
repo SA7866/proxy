@@ -54,6 +54,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',  # Serves CSS/JS files during development
 
     'store',  # Our own app — all the shop, cart, customiser, and admin panel code
+    'cloudinary',
+    'cloudinary_storage',
 ]
 
 
@@ -173,8 +175,17 @@ STORAGES = {
 # "Media" files are uploaded by users or admins — product photos, design previews, etc.
 # They are stored in the media/ folder and served under /media/
 # -------------------------------------------------------
-MEDIA_URL = "/media/"           # URL prefix: browser requests /media/products/jumper.jpg
-MEDIA_ROOT = BASE_DIR / "media" # Folder on disk where uploaded files are saved
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
+    'API_KEY':    os.environ.get('CLOUDINARY_API_KEY', ''),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET', ''),
+}
+
+if os.environ.get('CLOUDINARY_CLOUD_NAME'):
+    STORAGES['default'] = {'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage'}
 
 
 # Canvas screenshots sent from the customiser can be large base64 strings.
