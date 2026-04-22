@@ -5,8 +5,11 @@
 # The SMTP credentials (Gmail address and app password) are read from settings.py,
 # which in turn reads them from the .env file so they're never hardcoded in the code.
 
+import logging
 from django.core.mail import send_mail
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 def send_order_status_update(order):
@@ -108,7 +111,5 @@ We'll update you once your order ships.
             recipient_list=[order.email],
             fail_silently=False,
         )
-    except Exception:
-        # I don't want a failed email to prevent the customer from seeing their thank-you page,
-        # so I catch the error and silently move on
-        pass
+    except Exception as e:
+        logger.error("Email send failed: %s", e)
