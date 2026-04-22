@@ -154,8 +154,16 @@ USE_TZ = True             # store timezone-aware datetimes in the database
 # During development Django serves them automatically.
 # -------------------------------------------------------
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'  # where collectstatic puts files for production
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 
 # -------------------------------------------------------
