@@ -27,8 +27,6 @@
     <div class="checkout-card">
       <h2>Delivery Details</h2>
 
-      {# method="post" sends data in the request body (not visible in the URL)
-         Django's CheckoutForm validates the submitted data before creating the order #}
       <form method="post">
         {% csrf_token %}
 
