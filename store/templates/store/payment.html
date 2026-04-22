@@ -33,8 +33,6 @@
         </div>
       </div>
 
-      {# Submitting this form triggers the POST handler in payment_view()
-         which calls mark_order_paid(order) — no real card processing #}
       <form method="post">
         {% csrf_token %}
 
