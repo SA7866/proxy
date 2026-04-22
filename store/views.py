@@ -82,7 +82,7 @@ def cart_add(request, product_id):
 
     product = get_object_or_404(Product, id=product_id)
 
-    # Block adding out-of-stock items
+    # I check stock here so nobody can add an out-of-stock product to their cart
     if product.stock <= 0:
         return redirect("product_detail", product_id=product_id)
 
@@ -94,14 +94,16 @@ def cart_add(request, product_id):
     except ValueError:
         qty = 1
 
-    # design_id is set when the user clicks "Add to Cart" from My Designs
+    # design_id is passed as a hidden field when the user clicks "Add to Cart" from My Designs.
+    # I store it in the cart so I can link the custom design to the OrderItem when they checkout.
     try:
         design_id = int(request.POST.get("design_id") or 0) or None
     except ValueError:
         design_id = None
 
+    # I work out how many of this product are already in the cart,
+    # then cap the quantity so the total never exceeds what's actually in stock
     current_qty = cart[key]["qty"] if key in cart else 0
-    # Don't allow cart quantity to exceed available stock
     qty = min(qty, product.stock - current_qty)
     if qty <= 0:
         return redirect("cart")
@@ -219,11 +221,16 @@ def checkout_view(request):
 
 
 def _user_can_access_order(request, order):
-    """
-    Returns True if this request is allowed to view/pay this order.
-    Logged-in users must own the order.
-    Guests must have created it in this session (checkout stores the ID in allowed_orders).
-    """
+    # I wrote this helper to fix a security issue called IDOR (Insecure Direct Object Reference).
+    # Without this check, anyone could visit /payment/5/ and pay for (or view) someone else's order
+    # just by guessing the order ID in the URL.
+    #
+    # My fix: a user can only access an order if:
+    #   - They're logged in AND the order belongs to their account, OR
+    #   - The order ID is stored in their session (set when they completed checkout)
+    #
+    # The session check covers guest users — when checkout creates the order,
+    # I store its ID in request.session["allowed_orders"] so only that browser can pay it.
     if request.user.is_authenticated and order.user == request.user:
         return True
     if order.id in request.session.get("allowed_orders", []):
@@ -435,8 +442,11 @@ def login_view(request):
 
     next_url = request.GET.get("next") or request.POST.get("next") or ""
 
-    # Rate limiting: block after 5 failed attempts within 10 minutes.
-    # Timestamps of failures are stored in the session so they reset when the session expires.
+    # I added rate limiting to protect against brute force attacks —
+    # where someone writes a script that tries thousands of passwords automatically.
+    # My approach: I store a list of failure timestamps in the session.
+    # On each request I throw away anything older than 10 minutes,
+    # then check if 5 or more failures remain. If so, I block the form entirely.
     import time
     MAX_ATTEMPTS = 5
     WINDOW_SECONDS = 600  # 10 minutes
@@ -450,12 +460,12 @@ def login_view(request):
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-            request.session.pop("login_attempts", None)  # clear failure count on success
+            request.session.pop("login_attempts", None)  # clear the failure count on a successful login
             if next_url:
                 return redirect(next_url)
             return redirect("admin_dashboard" if user.is_staff else "home")
         else:
-            # Record this failure
+            # Wrong credentials — I record this failure timestamp so I can count it later
             attempts.append(now)
             request.session["login_attempts"] = attempts
     else:
@@ -475,9 +485,12 @@ def logout_view(request):
 
 # ============================================================
 # ACCOUNT SETTINGS
-# Lets logged-in users update their email and change their password.
-# update_session_auth_hash keeps the user logged in after a password change
-# (otherwise Django would log them out because the session hash changes).
+# I built this page so logged-in users can update their email or change their password
+# without needing to contact an admin.
+# I use Django's built-in PasswordChangeForm which handles all the validation
+# (checking old password is correct, new passwords match, meets strength rules).
+# I also call update_session_auth_hash after a password change — without this,
+# Django would log the user out immediately because the session hash no longer matches.
 # ============================================================
 
 @login_required
@@ -489,11 +502,13 @@ def account_settings_view(request):
     password_saved = False
     password_form  = PasswordChangeForm(request.user)
 
-    # Apply consistent styling to the password form fields
+    # I apply the same CSS class used everywhere else so the inputs look consistent
     for field in ("old_password", "new_password1", "new_password2"):
         password_form.fields[field].widget.attrs.update({"class": "input-field"})
 
     if request.method == "POST":
+        # I use a hidden "action" field in each form to tell the view which form was submitted,
+        # since both the email form and password form post to the same URL
         action = request.POST.get("action")
 
         if action == "email":
@@ -501,7 +516,7 @@ def account_settings_view(request):
             if new_email:
                 request.user.email = new_email
                 request.user.save()
-                email_saved = True
+                email_saved = True  # I pass this to the template to show a success message
 
         elif action == "password":
             password_form = PasswordChangeForm(request.user, request.POST)
@@ -509,8 +524,8 @@ def account_settings_view(request):
                 password_form.fields[field].widget.attrs.update({"class": "input-field"})
             if password_form.is_valid():
                 user = password_form.save()
-                update_session_auth_hash(request, user)  # keeps the user logged in
-                password_saved = True
+                update_session_auth_hash(request, user)  # keeps the user logged in after changing password
+                password_saved = True  # I pass this to the template to show a success message
 
     return render(request, "store/account_settings.html", {
         "password_form":  password_form,
