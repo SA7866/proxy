@@ -210,9 +210,11 @@ def admin_orders_update_status(request, order_id):
     if request.method == "POST":
         new_status = request.POST.get("status")
         # Whitelist valid statuses — rejects any unexpected value
-        if new_status in ["PENDING", "PAID", "SHIPPED"]:
+        if new_status in ["PENDING", "PAID", "SHIPPED"] and new_status != order.status:
             order.status = new_status
             order.save()
+            from .services.email_service import send_order_status_update
+            send_order_status_update(order)  # email customer about the status change
 
     return redirect("admin_orders_detail", order_id=order.id)
 

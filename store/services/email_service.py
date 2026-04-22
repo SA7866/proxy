@@ -6,6 +6,54 @@ from django.core.mail import send_mail
 from django.conf import settings
 
 
+def send_order_status_update(order):
+    """
+    Sends a short email to the customer when their order status changes to PAID or SHIPPED.
+    Called from admin_orders_update_status() in admin_views.py.
+    """
+    if order.status == "PAID":
+        subject = f"Payment Confirmed — Proxy #{order.id}"
+        body = f"""Hi {order.full_name},
+
+Your payment for Order #{order.id} has been confirmed.
+
+We're now preparing your order for dispatch. You'll receive another
+email as soon as it's on its way.
+
+Total: £{order.total_amount:.2f}
+
+— The Proxy Team
+"""
+    elif order.status == "SHIPPED":
+        subject = f"Your Order Has Shipped — Proxy #{order.id}"
+        body = f"""Hi {order.full_name},
+
+Great news — Order #{order.id} is on its way!
+
+DELIVERY ADDRESS
+{order.address_line1}
+{order.city}, {order.postcode}
+{order.country}
+
+Total: £{order.total_amount:.2f}
+
+— The Proxy Team
+"""
+    else:
+        return  # no email for PENDING
+
+    try:
+        send_mail(
+            subject=subject,
+            message=body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[order.email],
+            fail_silently=False,
+        )
+    except Exception:
+        pass
+
+
 def send_order_confirmation(order):
     """
     Sends a plain-text order confirmation to the customer's email address.
