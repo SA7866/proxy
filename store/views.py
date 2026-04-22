@@ -6,6 +6,7 @@
 #   3. Returns an HTTP response (usually a rendered HTML page, or a redirect)
 #
 # Django routes each URL to the correct view function (see urls.py).
+# Docs: https://docs.djangoproject.com/en/5.0/topics/http/views/
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -65,6 +66,7 @@ def product_detail(request, product_id):
 # The cart is stored in the user's server-side session.
 # No login needed — guests can shop too.
 # Cart format in session: {"product_id": {"qty": 2}, "7": {"qty": 1}, ...}
+# Django sessions docs: https://docs.djangoproject.com/en/5.0/topics/http/sessions/
 # ============================================================
 
 def cart_view(request):
@@ -272,6 +274,7 @@ def thank_you(request, order_id):
 # CUSTOMISER + DESIGNS
 # @login_required means only logged-in users can access these views.
 # If not logged in, Django redirects to the login page automatically.
+# Docs: https://docs.djangoproject.com/en/5.0/topics/auth/default/#the-login-required-decorator
 #
 # The customiser runs entirely in the browser (customise.js).
 # When the user saves, the browser sends:
@@ -331,9 +334,10 @@ def save_design_view(request, product_id):
     # --- Convert embedded base64 images to saved files ---
     # When a user uploads an image in the customiser, it's stored in the JSON
     # as a huge base64 string (e.g. "data:image/png;base64,iVBORw0KGgo...").
-    # We extract each one, save it as a real file in media/design_images/,
-    # and replace the base64 blob with a normal server URL.
+    # We extract each one, upload it to Cloudinary, and replace the base64 blob with a URL.
     # This keeps the design JSON small and lets the admin preview load images normally.
+    # Python base64 docs:   https://docs.python.org/3/library/base64.html
+    # Cloudinary upload docs: https://cloudinary.com/documentation/image_upload_api_reference
     try:
         data = json.loads(design_json)
         elements = data.get("elements")

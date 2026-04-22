@@ -3,6 +3,7 @@
 // This file controls the entire canvas-based design editor in the browser.
 // It uses the HTML5 Canvas API — think of canvas as a whiteboard you can
 // draw on using JavaScript.
+// MDN Canvas API docs: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API
 //
 // Features:
 //   - Add text (font, size, bold, italic, colour, background colour)
@@ -20,7 +21,9 @@
 // We store references here so we don't have to search the page on every draw call.
 // -------------------------------------------------------
 const canvas = document.getElementById("designerCanvas");
-const ctx    = canvas.getContext("2d"); // ctx is the drawing tool for the canvas
+// getContext("2d") returns the 2D drawing context used for all canvas operations.
+// MDN: https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext
+const ctx    = canvas.getContext("2d");
 
 // These two values are injected by the Django template (see customise.html):
 //   window.PRODUCT_TEMPLATE_URL — URL of the transparent product PNG
@@ -97,6 +100,9 @@ const history = [];
 // Once it's fully loaded (onload), compute the background mask and then draw.
 // -------------------------------------------------------
 const templateImg  = new Image();
+// crossOrigin = "anonymous" allows canvas to read pixel data from Cloudinary-hosted images.
+// Without this, reading pixels from a cross-origin image would throw a SecurityError.
+// MDN: https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_enabled_image
 templateImg.crossOrigin = "anonymous";
 templateImg.src    = templateUrl;
 templateImg.onload = () => {

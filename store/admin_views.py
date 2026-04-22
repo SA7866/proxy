@@ -3,12 +3,16 @@
 # This replaces Django's built-in /admin/ with a purpose-built interface
 # that matches the site's styling and only exposes what this project needs.
 
+# user_passes_test lets me create a custom access check for views.
+# Docs: https://docs.djangoproject.com/en/5.0/topics/auth/default/#django.contrib.auth.decorators.user_passes_test
 from django.contrib.auth.decorators import user_passes_test
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
 from django.db.models import Sum
 
 import json
+# Pillow (PIL) is used to verify uploaded images are real image files.
+# Docs: https://pillow.readthedocs.io/en/stable/reference/Image.html
 from PIL import Image
 
 from .models import Product, Order, Design

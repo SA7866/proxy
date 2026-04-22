@@ -3,6 +3,8 @@
 # Keeping this in a separate "service" file means views stay thin
 # (just handle HTTP) and this logic can be tested independently.
 
+# Decimal is used instead of float to avoid rounding errors with money values.
+# Docs: https://docs.python.org/3/library/decimal.html
 from decimal import Decimal
 from django.shortcuts import get_object_or_404
 from store.models import Order, OrderItem, Product, Design

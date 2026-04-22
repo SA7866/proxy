@@ -6,6 +6,8 @@
 
 from pathlib import Path
 import os
+# dj_database_url parses a DATABASE_URL environment variable into Django's DATABASES dict.
+# Docs: https://github.com/jazzband/dj-database-url
 import dj_database_url
 
 # BASE_DIR is the root folder of the project (where manage.py lives).
@@ -178,6 +180,9 @@ STORAGES = {
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# django-cloudinary-storage replaces Django's default file storage with Cloudinary.
+# Uploaded images go to Cloudinary's CDN instead of the local disk.
+# Docs: https://github.com/klis87/django-cloudinary-storage
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
     'API_KEY':    os.environ.get('CLOUDINARY_API_KEY', ''),

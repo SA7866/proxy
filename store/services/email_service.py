@@ -2,6 +2,8 @@
 # I switched from Django's SMTP email to Resend's HTTP API because Railway blocks SMTP.
 # Resend sends emails over HTTPS so it works on any host.
 # If RESEND_API_KEY isn't set, I fall back to Django's send_mail so local dev still works.
+# Resend Python SDK docs: https://resend.com/docs/send-with-python
+# Django send_mail docs:  https://docs.djangoproject.com/en/5.0/topics/email/
 
 import os
 import logging

@@ -1,6 +1,7 @@
 # models.py
 # Defines the database tables (called "models" in Django).
 # Each class = one table. Each attribute = one column.
+# Docs: https://docs.djangoproject.com/en/5.0/topics/db/models/
 
 from django.db import models
 from django.conf import settings
@@ -60,6 +61,7 @@ class Design(models.Model):
     size: clothing size chosen by the user (S / M / L / XL).
     """
     # If the user account is deleted, all their designs are deleted too (CASCADE)
+    # Docs on on_delete options: https://docs.djangoproject.com/en/5.0/ref/models/fields/#django.db.models.ForeignKey.on_delete
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -82,6 +84,8 @@ class Design(models.Model):
     ]
 
     design_data = models.TextField()  # JSON string
+    # ImageField handles file uploads and stores the path in the database
+    # Docs: https://docs.djangoproject.com/en/5.0/ref/models/fields/#imagefield
     preview     = models.ImageField(upload_to="design_previews/", blank=True, null=True)
     size        = models.CharField(max_length=10, blank=True)
     status      = models.CharField(max_length=20, choices=STATUS_CHOICES, default="APPROVED")
